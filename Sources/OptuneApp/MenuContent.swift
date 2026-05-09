@@ -14,7 +14,7 @@ struct MenuContent: View {
                 .padding(.bottom, 12)
 
             if let device = model.primaryDevice, let descriptor = model.primaryDescriptor {
-                DeviceCard(device: device, descriptor: descriptor)
+                DeviceCard(device: device, descriptor: descriptor, telemetry: model.telemetry)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
             } else {
@@ -45,6 +45,7 @@ struct MenuContent: View {
         switch action {
         case .refresh:
             model.refresh()
+            model.refreshTelemetryNow()
         case .openProject:
             if let url = URL(string: OptuneCore.Optune.projectURL) {
                 NSWorkspace.shared.open(url)
@@ -109,6 +110,7 @@ private struct HeaderCard: View {
 private struct DeviceCard: View {
     let device: LogitechDevice
     let descriptor: DeviceDescriptor
+    let telemetry: DeviceTelemetry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -131,7 +133,7 @@ private struct DeviceCard: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                CapabilityRow(symbol: "battery.100", label: "Battery", value: "—  pending HID++")
+                BatteryRow(state: telemetry.battery)
                 CapabilityRow(symbol: "scope", label: "DPI",     value: "—  pending HID++")
                 CapabilityRow(symbol: "wand.and.rays", label: "SmartShift", value: "—  pending HID++")
                 CapabilityRow(symbol: "scroll.fill", label: "Smooth scroll", value: descriptor.supportsSmoothScroll ? "Available" : "Not supported")
@@ -139,6 +141,65 @@ private struct DeviceCard: View {
         }
         .padding(14)
         .background(GlassCardBackground())
+    }
+}
+
+private struct BatteryRow: View {
+    let state: DeviceTelemetry.Battery
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(tint)
+                .frame(width: 16)
+            Text("Battery")
+                .font(.system(size: 12, weight: .medium))
+            Spacer()
+            Text(displayValue)
+                .font(.system(size: 11, weight: .regular, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+    }
+
+    private var symbol: String {
+        switch state {
+        case .ok(let p, let charging, _):
+            if charging { return "battery.100.bolt" }
+            switch p {
+            case ..<10: return "battery.0"
+            case ..<35: return "battery.25"
+            case ..<60: return "battery.50"
+            case ..<85: return "battery.75"
+            default:    return "battery.100"
+            }
+        case .unavailable: return "exclamationmark.triangle"
+        case .unknown:     return "battery.100"
+        }
+    }
+
+    private var tint: Color {
+        switch state {
+        case .ok(let p, let charging, _):
+            if charging { return .green }
+            return p < 20 ? .red : .accentColor
+        case .unavailable: return .orange
+        case .unknown:     return .secondary
+        }
+    }
+
+    private var displayValue: String {
+        switch state {
+        case .ok(let p, let charging, let ext):
+            let suffix = charging ? " · charging" : (ext ? " · plugged" : "")
+            return "\(p)%\(suffix)"
+        case .unavailable(let why):
+            return why
+        case .unknown:
+            return "Reading…"
+        }
     }
 }
 

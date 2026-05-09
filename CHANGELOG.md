@@ -3,6 +3,37 @@
 All notable changes to Optune are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning is [SemVer](https://semver.org/).
 
+## [Unreleased] — v0.2 HID++ transport
+
+### Added
+- `HIDPPTransport` — async HID++ 2.0 transport over IOKit. 7-byte short and 20-byte
+  long reports, software-id correlation, dispatch-queue scheduling (works in CLI without
+  an active CFRunLoop), per-request timeouts, proper teardown via `IOHIDDeviceCancel`.
+- Feature `0x0000` Root.GetFeature lookup (`Sources/OptuneCore/Features/Root.swift`).
+- Feature `0x1004` UnifiedBattery (`Sources/OptuneCore/Features/UnifiedBattery.swift`)
+  with `ChargingState` enum and external-power detection.
+- `optune battery` CLI subcommand — opens the device, looks up Feature 0x1004 via Root,
+  queries unified-battery status. `--json` and `--pid` flags supported.
+- `optune doctor` now actually opens the device and round-trips a Root probe to detect
+  TCC denial (Input Monitoring) — surfaces a clear actionable message rather than
+  silently failing.
+- `OPTUNE_HIDPP_DEBUG=1` environment flag dumps every TX/RX frame as hex for protocol
+  debugging.
+- **Menu bar app**: live battery row replaces the old "pending HID++" placeholder.
+  Polls every 60s in the background, refreshes immediately when the user clicks
+  Refresh, and shows a tinted icon (red <20%, green when charging) plus charging /
+  plugged-in state. On TCC denial it surfaces an actionable hint inline rather than
+  silently spinning.
+
+### Known limitations
+- Requires **Input Monitoring** (System Settings → Privacy & Security → Input Monitoring)
+  for the running binary. macOS attributes the request to the *responsible parent process*
+  for child processes; spawn `optune` from Terminal/Finder or grant Input Monitoring to
+  the parent.
+- BLE-paired devices on macOS only expose the long-report (0x11) HID++ surface — short
+  (0x10) requests are rejected with `IOReturn 0xE00002F0`. All current feature calls
+  use long reports.
+
 ## [0.1.0] — 2026-05-09
 
 ### Added
