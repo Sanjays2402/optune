@@ -20,7 +20,15 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
 cp "$BUILD_DIR/OptuneApp" "$APP_DIR/Contents/MacOS/OptuneApp"
 
-cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
+# Copy procedural app icon if it exists.
+if [[ -f Resources/AppIcon.icns ]]; then
+  cp Resources/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
+  ICON_LINE='  <key>CFBundleIconFile</key><string>AppIcon</string>'
+else
+  ICON_LINE=''
+fi
+
+cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -29,12 +37,13 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
   <key>CFBundleDisplayName</key><string>Optune</string>
   <key>CFBundleExecutable</key><string>OptuneApp</string>
   <key>CFBundleIdentifier</key><string>com.sanjays2402.optune</string>
-  <key>CFBundleVersion</key><string>0.1.0</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleVersion</key><string>0.4.0</string>
+  <key>CFBundleShortVersionString</key><string>0.4.0</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>LSUIElement</key><true/>
+${ICON_LINE}
   <key>NSHumanReadableCopyright</key><string>© 2026 Sanjay Santhanam — GPL-3.0-or-later</string>
 </dict>
 </plist>

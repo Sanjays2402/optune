@@ -19,10 +19,6 @@ struct MenuContent: View {
                 DeviceCard(device: device, descriptor: descriptor, telemetry: model.telemetry)
                     .padding(.horizontal, OptuneDesign.Spacing.lg)
                     .padding(.bottom, OptuneDesign.Spacing.md)
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.96).combined(with: .opacity),
-                        removal: .opacity
-                    ))
             } else {
                 EmptyDeviceCard()
                     .padding(.horizontal, OptuneDesign.Spacing.lg)
@@ -31,7 +27,7 @@ struct MenuContent: View {
 
             Divider().opacity(0.4).padding(.horizontal, OptuneDesign.Spacing.lg)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 ForEach(MenuAction.allCases) { action in
                     MenuRow(action: action, isHovered: hoveredAction == action)
                         .onHover { hoveredAction = $0 ? action : nil }
@@ -41,7 +37,6 @@ struct MenuContent: View {
             .padding(.horizontal, OptuneDesign.Spacing.sm)
             .padding(.vertical, OptuneDesign.Spacing.sm)
         }
-        .animation(OptuneDesign.Motion.calm, value: model.primaryDevice?.id)
         .background(LiquidGlassSurface())
         .clipShape(RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous))
     }
@@ -71,8 +66,8 @@ private enum MenuAction: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .refresh: return "Refresh telemetry"
-        case .openSettings: return "Open Optune Settings…"
-        case .openProject: return "Open project on GitHub"
+        case .openSettings: return "Settings…"
+        case .openProject: return "GitHub repository"
         case .quit: return "Quit Optune"
         }
     }
@@ -85,6 +80,17 @@ private enum MenuAction: String, CaseIterable, Identifiable {
         case .quit: return "power"
         }
     }
+
+    var keys: [String] {
+        switch self {
+        case .refresh: return ["⌘", "R"]
+        case .openSettings: return ["⌘", ","]
+        case .openProject: return []
+        case .quit: return ["⌘", "Q"]
+        }
+    }
+
+    var isDestructive: Bool { self == .quit }
 }
 
 // MARK: - Header
@@ -95,24 +101,23 @@ private struct HeaderCard: View {
     var body: some View {
         HStack(alignment: .center, spacing: OptuneDesign.Spacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(.linearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.6)],
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.55)],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ))
                 Image(systemName: "computermouse.fill")
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
-                    .shadow(color: Color.accentColor.opacity(0.45), radius: 6, y: 2)
             }
-            .frame(width: 42, height: 42)
-            .shadow(color: Color.accentColor.opacity(0.25), radius: 8, y: 3)
+            .frame(width: 34, height: 34)
+            .shadow(color: Color.accentColor.opacity(0.30), radius: 6, y: 2)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Optune").font(OptuneDesign.Typography.title)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Optune").font(.system(size: 15, weight: .semibold, design: .rounded))
                 Text("v\(OptuneCore.Optune.version) · \(model.recognizedCount) device\(model.recognizedCount == 1 ? "" : "s")")
                     .font(OptuneDesign.Typography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
             }
             Spacer()
             if model.isPolling {
@@ -131,31 +136,32 @@ private struct DeviceCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
-            HStack(alignment: .top, spacing: OptuneDesign.Spacing.md) {
+            HStack(alignment: .center, spacing: OptuneDesign.Spacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(.tint.opacity(0.14))
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(.tint.opacity(0.16))
                     Image(systemName: "computermouse")
-                        .font(.system(size: 22, weight: .light))
+                        .font(.system(size: 18, weight: .regular))
                         .foregroundStyle(.tint)
                         .symbolRenderingMode(.hierarchical)
                 }
-                .frame(width: 40, height: 40)
+                .frame(width: 32, height: 32)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(descriptor.modelName).font(OptuneDesign.Typography.header)
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(descriptor.modelName)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    HStack(spacing: 5) {
+                        Text(transportLabel(device))
+                            .font(OptuneDesign.Typography.caption)
+                            .foregroundStyle(.tertiary)
+                        Text("·").foregroundStyle(.tertiary)
                         Text(String(format: "0x%04X", device.productID))
                             .font(OptuneDesign.Typography.mono)
-                            .foregroundStyle(.secondary)
-                        Text("·").foregroundStyle(.secondary)
-                        Text(device.transport ?? "USB")
-                            .font(OptuneDesign.Typography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                     }
                 }
                 Spacer()
-                ConnectionPill()
+                ConnectionChip(connected: true)
             }
 
             VStack(spacing: OptuneDesign.Spacing.sm) {
@@ -167,19 +173,12 @@ private struct DeviceCard: View {
         }
         .glassCard()
     }
-}
 
-private struct ConnectionPill: View {
-    var body: some View {
-        HStack(spacing: 5) {
-            StatusDot(tone: .green, pulse: true)
-            Text("Connected")
-                .font(OptuneDesign.Typography.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(.ultraThinMaterial, in: Capsule())
+    private func transportLabel(_ d: LogitechDevice) -> String {
+        guard let t = d.transport else { return "USB" }
+        if t.localizedCaseInsensitiveContains("bluetooth") { return "BLE" }
+        if t.localizedCaseInsensitiveContains("bolt")      { return "Bolt" }
+        return t
     }
 }
 
@@ -265,7 +264,7 @@ private struct DPIRow: View {
         FeatureRow(
             symbol: "scope",
             symbolTint: .accentColor,
-            label: "DPI",
+            label: "Pointer",
             secondary: secondary
         ) {
             CapabilityPill(text: pillText, tone: pillTone)
@@ -275,7 +274,7 @@ private struct DPIRow: View {
     private var secondary: String? {
         switch state {
         case .ok(_, let lo, let hi, _, _):
-            return "Range \(lo) … \(hi)"
+            return "\(lo)–\(hi) dpi range"
         case .unavailable(let why): return why
         case .unknown: return "Reading…"
         }
@@ -283,7 +282,7 @@ private struct DPIRow: View {
 
     private var pillText: String {
         switch state {
-        case .ok(let cur, _, _, _, _): return "\(cur)"
+        case .ok(let cur, _, _, _, _): return "\(cur) dpi"
         case .unavailable: return "—"
         case .unknown: return "—"
         }
@@ -407,20 +406,31 @@ private struct MenuRow: View {
     let isHovered: Bool
 
     var body: some View {
-        HStack(spacing: OptuneDesign.Spacing.sm) {
+        HStack(spacing: OptuneDesign.Spacing.md) {
             Image(systemName: action.symbol)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.tint)
+                .foregroundStyle(action.isDestructive ? .red : (isHovered ? .primary : .secondary))
                 .symbolRenderingMode(.hierarchical)
-                .frame(width: 18)
-            Text(action.label).font(.system(size: 13, design: .rounded))
+                .frame(width: 16)
+            Text(action.label)
+                .font(.system(size: 13, design: .rounded))
+                .foregroundStyle(action.isDestructive ? .red : .primary)
             Spacer()
+            if action.keys.count >= 2 {
+                KeyHint(action.keys[0], action.keys[1])
+                    .opacity(isHovered ? 1 : 0.55)
+            } else if let single = action.keys.first {
+                KeyHint(single)
+                    .opacity(isHovered ? 1 : 0.55)
+            }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 7)
         .background(
             RoundedRectangle(cornerRadius: OptuneDesign.Radius.row, style: .continuous)
-                .fill(isHovered ? Color.accentColor.opacity(0.16) : Color.clear)
+                .fill(isHovered
+                      ? (action.isDestructive ? Color.red.opacity(0.12) : Color.primary.opacity(0.07))
+                      : Color.clear)
         )
         .contentShape(Rectangle())
         .animation(OptuneDesign.Motion.glide, value: isHovered)
