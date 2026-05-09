@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag (e.g. v0.4.0)'
+        required: true
+
+jobs:
+  build:
+    name: Build & package macOS app
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building $TAG (version=$VERSION)"
+
+      - name: Show Swift toolchain
+        run: swift --version
+
+      - name: Build release binary (universal)
+        run: swift build -c release --arch arm64 --arch x86_64
+
+      - name: Bundle .app
+        run: |
+          chmod +x scripts/bundle-app.sh
+          bash scripts/bundle-app.sh release
+
+      - name: Stamp version in Info.plist
+        run: |
+          APP=".build/OptuneApp.app"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.ver.outputs.version }}" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.ver.outputs.version }}" "$APP/Contents/Info.plist"
+
+      - name: Ad-hoc codesign (no Apple Developer cert)
+        run: |
+          codesign --force --deep --sign - .build/OptuneApp.app
+          codesign --verify --verbose .build/OptuneApp.app
+
+      - name: Stage release directory
+        run: |
+          mkdir -p dist
+          cp -R .build/OptuneApp.app dist/Optune.app
+
+      - name: Create ZIP
+        run: |
+          cd dist
+          ditto -c -k --keepParent --sequesterRsrc Optune.app "Optune-${{ steps.ver.outputs.version }}.zip"
+          shasum -a 256 "Optune-${{ steps.ver.outputs.version }}.zip" | tee "Optune-${{ steps.ver.outputs.version }}.zip.sha256"
+
+      - name: Create DMG
+        run: |
+          DMG="dist/Optune-${{ steps.ver.outputs.version }}.dmg"
+          STAGE="$(mktemp -d)"
+          cp -R dist/Optune.app "$STAGE/Optune.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Optune ${{ steps.ver.outputs.version }}" \
+            -srcfolder "$STAGE" \
+            -ov -format UDZO \
+            "$DMG"
+          shasum -a 256 "$DMG" | tee "$DMG.sha256"
+
+      - name: Upload artifacts (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Optune-${{ steps.ver.outputs.version }}
+          path: |
+            dist/Optune-${{ steps.ver.outputs.version }}.zip
+            dist/Optune-${{ steps.ver.outputs.version }}.dmg
+            dist/Optune-${{ steps.ver.outputs.version }}.zip.sha256
+            dist/Optune-${{ steps.ver.outputs.version }}.dmg.sha256
+
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        id: notes
+        run: |
+          {
+            echo 'notes<<OPTUNE_EOF'
+            cat <<NOTES
+          ## Optune ${{ steps.ver.outputs.tag }}
+
+          Native macOS Logitech utility — HID++ over BLE / Logi Bolt, Liquid Glass UI.
+
+          ### Install
+
+          **DMG (recommended):** download \`Optune-${{ steps.ver.outputs.version }}.dmg\`, open it, drag Optune.app into Applications.
+
+          **ZIP:** download \`Optune-${{ steps.ver.outputs.version }}.zip\`, double-click to unzip, move Optune.app to /Applications.
+
+          ### First launch
+
+          The build is **ad-hoc signed** (not notarised). On first launch macOS will block it — right-click Optune.app → **Open** → **Open** to confirm. After that it launches normally.
+
+          Optune needs **Input Monitoring** to talk HID++. Open **System Settings → Privacy & Security → Input Monitoring**, toggle Optune on, then quit and relaunch.
+
+          ### Verify download
+          \`\`\`
+          shasum -a 256 -c Optune-${{ steps.ver.outputs.version }}.dmg.sha256
+          \`\`\`
+
+          ### Requirements
+          - macOS 15 (Sequoia) or newer
+          - Apple Silicon or Intel (universal binary)
+          - One Logitech HID++ device (BLE or Logi Bolt receiver)
+
+          Full changelog: see [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+          NOTES
+            echo 'OPTUNE_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Optune ${{ steps.ver.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/Optune-${{ steps.ver.outputs.version }}.zip
+            dist/Optune-${{ steps.ver.outputs.version }}.zip.sha256
+            dist/Optune-${{ steps.ver.outputs.version }}.dmg
+            dist/Optune-${{ steps.ver.outputs.version }}.dmg.sha256
