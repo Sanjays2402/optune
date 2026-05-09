@@ -45,13 +45,7 @@ public struct LogitechDevice: Sendable, Identifiable, Hashable {
         return String(format: "Logitech device (PID 0x%04X)", productID)
     }
 
-    /// Heuristic: is this entry the MX Master 3S we care about for the MVP?
-    public var isMXMaster3S: Bool {
-        // Logitech assigns multiple PIDs depending on transport (Bolt vs Unifying vs BT).
-        // MX Master 3S confirmed PIDs from logiops/Solaar tables.
-        let mx3sPIDs: Set<Int> = [0xB034, 0x4082, 0x407B]
-        return mx3sPIDs.contains(productID)
-    }
+    // `isMXMaster3S` lives in `DeviceRegistry.swift` so it tracks the registry table.
 }
 
 /// Enumerates Logitech HID devices via IOKit. Pure, sync, no daemon.
