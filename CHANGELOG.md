@@ -19,6 +19,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
   silently failing.
 - `OPTUNE_HIDPP_DEBUG=1` environment flag dumps every TX/RX frame as hex for protocol
   debugging.
+- **Menu bar app**: live battery row replaces the old "pending HID++" placeholder.
+  Polls every 60s in the background, refreshes immediately when the user clicks
+  Refresh, and shows a tinted icon (red <20%, green when charging) plus charging /
+  plugged-in state. On TCC denial it surfaces an actionable hint inline rather than
+  silently spinning.
 
 ### Known limitations
 - Requires **Input Monitoring** (System Settings → Privacy & Security → Input Monitoring)
