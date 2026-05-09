@@ -10,7 +10,10 @@ struct Optune: AsyncParsableCommand {
         version: OptuneCore.Optune.version,
         subcommands: [
             Devices.self, Doctor.self,
-            Battery.self, DPICommand.self, SmartShiftCommand.self, ButtonsCommand.self
+            Battery.self, DPICommand.self, SmartShiftCommand.self, ButtonsCommand.self,
+            FirmwareCommand.self, NameCommand.self, HostCommand.self, ProfileCommand.self,
+            WheelCommand.self, SpeedCommand.self, ResetCommand.self,
+            MonitorCommand.self, ExportCommand.self
         ]
     )
 }

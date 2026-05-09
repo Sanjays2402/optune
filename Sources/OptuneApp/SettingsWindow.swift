@@ -9,14 +9,17 @@ struct SettingsWindow: View {
     @State private var selection: Pane = .devices
 
     enum Pane: String, Hashable, CaseIterable, Identifiable {
-        case devices, pointer, buttons, about
+        case devices, pointer, wheel, buttons, hosts, general, about
         var id: String { rawValue }
 
         var label: String {
             switch self {
             case .devices: return "Devices"
             case .pointer: return "Pointer"
+            case .wheel:   return "Wheel"
             case .buttons: return "Buttons"
+            case .hosts:   return "Hosts"
+            case .general: return "General"
             case .about:   return "About"
             }
         }
@@ -24,7 +27,10 @@ struct SettingsWindow: View {
             switch self {
             case .devices: return "computermouse"
             case .pointer: return "scope"
+            case .wheel:   return "circle.dotted.circle"
             case .buttons: return "rectangle.grid.2x2"
+            case .hosts:   return "rectangle.connected.to.line.below"
+            case .general: return "gear"
             case .about:   return "info.circle"
             }
         }
@@ -49,7 +55,10 @@ struct SettingsWindow: View {
                     switch selection {
                     case .devices: DevicesPane()
                     case .pointer: PointerPane()
+                    case .wheel:   WheelPane()
                     case .buttons: ButtonsPane()
+                    case .hosts:   HostsPane()
+                    case .general: GeneralPane()
                     case .about:   AboutPane()
                     }
                 }
@@ -166,6 +175,25 @@ private struct DeviceDetailCard: View {
                         Text(serial).font(OptuneDesign.Typography.mono)
                     }
                 }
+            }
+
+            let samples = SettingsStore.shared.batteryHistory(for: device)
+            if samples.count >= 2 {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Battery (last \(samples.count) samples)")
+                            .font(OptuneDesign.Typography.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if let last = samples.last {
+                            Text(last.charging ? "↑ \(last.percent)%" : "\(last.percent)%")
+                                .font(OptuneDesign.Typography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    BatterySparkline(samples: samples, height: 36)
+                }
+                .padding(.top, 4)
             }
         }
         .glassCard()
@@ -503,42 +531,103 @@ private struct ButtonRow: View {
 // MARK: - About
 
 private struct AboutPane: View {
-    var body: some View {
-        VStack(spacing: OptuneDesign.Spacing.md) {
-            Spacer()
-            ZStack {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(.linearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.55)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ))
-                    .shadow(color: Color.accentColor.opacity(0.5), radius: 24, y: 6)
-                Image(systemName: "computermouse.fill")
-                    .font(.system(size: 56, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 110, height: 110)
+    @EnvironmentObject private var model: DeviceModel
 
-            Text("Optune").font(.system(size: 28, weight: .bold, design: .rounded))
-            Text("v\(OptuneCore.Optune.version)")
-                .foregroundStyle(.secondary)
-                .font(OptuneDesign.Typography.body)
-            Text("A modern, open-source Logitech Options+ replacement — native macOS, written in Swift 6.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 60)
-            HStack(spacing: 12) {
-                Link(destination: URL(string: OptuneCore.Optune.projectURL)!) {
-                    Label("github.com/Sanjays2402/optune", systemImage: "arrow.up.right.square")
+    var body: some View {
+        ScrollView {
+            VStack(spacing: OptuneDesign.Spacing.lg) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(.linearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.55)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .shadow(color: Color.accentColor.opacity(0.5), radius: 24, y: 6)
+                    Image(systemName: "computermouse.fill")
+                        .font(.system(size: 56, weight: .semibold))
+                        .foregroundStyle(.white)
                 }
-                .buttonStyle(.bordered)
+                .frame(width: 110, height: 110)
+
+                VStack(spacing: 4) {
+                    Text("Optune").font(.system(size: 28, weight: .bold, design: .rounded))
+                    Text("v\(OptuneCore.Optune.version)")
+                        .foregroundStyle(.secondary)
+                        .font(OptuneDesign.Typography.body)
+                    Text("A modern, open-source Logitech Options+ replacement — native macOS, written in Swift 6.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 60)
+                }
+
+                liveTelemetryCard
+
+                HStack(spacing: 12) {
+                    Link(destination: URL(string: OptuneCore.Optune.projectURL)!) {
+                        Label("github.com/Sanjays2402/optune", systemImage: "arrow.up.right.square")
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Text("HID++ 2.0 over IOKit — battery, DPI, SmartShift, ReprogControlsV4, FirmwareInfo, Hosts, HiResWheel, PointerSpeed")
+                    .font(OptuneDesign.Typography.caption)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
             }
-            Spacer()
-            Text("HID++ 2.0 over IOKit — battery, DPI, SmartShift, ReprogControlsV4")
-                .font(OptuneDesign.Typography.caption)
-                .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, OptuneDesign.Spacing.lg)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var liveTelemetryCard: some View {
+        VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
+            Text("Connected device").font(OptuneDesign.Typography.header)
+
+            if let device = model.primaryDevice, let descriptor = model.primaryDescriptor {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+                    GridRow {
+                        Text("Model").foregroundStyle(.secondary)
+                        Text(descriptor.modelName).font(OptuneDesign.Typography.body)
+                    }
+                    GridRow {
+                        Text("Codename").foregroundStyle(.secondary)
+                        Text(descriptor.codename).font(OptuneDesign.Typography.mono)
+                    }
+                    GridRow {
+                        Text("Product ID").foregroundStyle(.secondary)
+                        Text(String(format: "0x%04X", device.productID)).font(OptuneDesign.Typography.mono)
+                    }
+                    GridRow {
+                        Text("Transport").foregroundStyle(.secondary)
+                        Text(device.transport ?? "USB").font(OptuneDesign.Typography.body)
+                    }
+                    if let serial = device.serialNumber, !serial.isEmpty {
+                        GridRow {
+                            Text("Serial").foregroundStyle(.secondary)
+                            Text(serial).font(OptuneDesign.Typography.mono)
+                        }
+                    }
+                    if !model.deviceNickname.isEmpty {
+                        GridRow {
+                            Text("Nickname").foregroundStyle(.secondary)
+                            Text(model.deviceNickname).font(OptuneDesign.Typography.body)
+                        }
+                    }
+                    if case .ok(let entities, _) = model.telemetry.firmware {
+                        ForEach(entities) { entity in
+                            GridRow {
+                                Text(entity.kind).foregroundStyle(.secondary)
+                                Text(entity.displayVersion).font(OptuneDesign.Typography.mono)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Text("No device connected.").foregroundStyle(.secondary)
+            }
+        }
         .glassCard()
+        .padding(.horizontal, 60)
     }
 }
