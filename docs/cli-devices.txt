@@ -1,0 +1,8 @@
+Found 1 Logitech device:
+
+  • MX Master 3S  [0xB034]  ✅ supported
+      transport: Bluetooth Low Energy  usage: 0x0001/0x0002
+      model:     MX Master 3S (mx-master-3s)
+      serial:    31A5D392
+
+Pass --json for machine-readable output, or --all to see every interface.
