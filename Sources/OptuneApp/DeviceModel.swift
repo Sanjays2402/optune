@@ -94,6 +94,24 @@ struct DeviceTelemetry: Equatable {
         case ok(linkOK: Bool, isPowerSwitch: Bool)
     }
 
+    enum Backlight: Equatable {
+        case unknown
+        case unavailable(String)
+        case ok(enabled: Bool, mode: UInt8, level: UInt8, maxLevel: UInt8)
+    }
+
+    enum FnLock: Equatable {
+        case unknown
+        case unavailable(String)
+        case ok(host: UInt8, fnLockOn: Bool, isInvertible: Bool)
+    }
+
+    enum Onboard: Equatable {
+        case unknown
+        case unavailable(String)
+        case ok(mode: UInt8, activeProfile: UInt8, profileCount: Int)
+    }
+
     /// Sendable, Equatable mirror of `ReprogControlsV4Feature.Control`. Lets us
     /// keep `DeviceTelemetry` Equatable and pass it through `@Published`.
     struct SerializableControl: Equatable, Identifiable, Hashable {
@@ -115,6 +133,9 @@ struct DeviceTelemetry: Equatable {
     var wheel: Wheel = .unknown
     var pointerSpeed: PointerSpeed = .unknown
     var wirelessLink: WirelessLink = .unknown
+    var backlight: Backlight = .unknown
+    var fnLock: FnLock = .unknown
+    var onboard: Onboard = .unknown
     var lastUpdated: Date?
 }
 
@@ -125,6 +146,10 @@ final class DeviceModel: ObservableObject {
     @Published private(set) var telemetry: DeviceTelemetry = DeviceTelemetry()
     @Published private(set) var isPolling: Bool = false
     @Published private(set) var deviceNickname: String = ""
+
+    /// Per-app profile manager. Owns the NSWorkspace observer and the
+    /// profile rules; instantiated here so views can pull it from the model.
+    let appProfileManager: AppProfileManager = AppProfileManager()
 
     /// True when the most recent telemetry sweep tripped the "Input Monitoring
     /// not granted" code path. Drives the orange permission banner in Settings.
@@ -147,6 +172,7 @@ final class DeviceModel: ObservableObject {
     init() {
         refresh()
         OptuneNotifications.shared.requestAuthorizationIfNeeded()
+        appProfileManager.deviceModel = self
         sleepObserver = SleepObserver { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refresh()
@@ -276,6 +302,46 @@ final class DeviceModel: ObservableObject {
         }
     }
 
+    /// Toggle keyboard backlight (0x1982). Mode: 0=off, 1=auto, 2=manual.
+    func setBacklight(enabled: Bool, mode: UInt8, level: UInt8) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            await Self.writeBacklight(enabled: enabled, mode: mode, level: level, on: device)
+            await self.pollTelemetry()
+        }
+    }
+
+    /// Toggle Fn-lock (0x40A3) for the active host (0xFF = current).
+    func setFnLock(_ on: Bool) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            await Self.writeFnLock(on: on, host: 0xFF, on: device)
+            await self.pollTelemetry()
+        }
+    }
+
+    /// Switch onboard-profile mode (0x8100). 1 = onboard, 2 = host-driven.
+    func setOnboardMode(_ mode: UInt8) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            await Self.writeOnboardMode(mode: mode, on: device)
+            await self.pollTelemetry()
+        }
+    }
+
+    /// Switch the active onboard profile slot (1...profileCount).
+    func setOnboardActiveProfile(_ slot: UInt8) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            await Self.writeOnboardActiveProfile(slot: slot, on: device)
+            await self.pollTelemetry()
+        }
+    }
+
     var recognizedDevices: [LogitechDevice] {
         devices.filter { DeviceRegistry.descriptor(for: $0) != nil }
     }
@@ -319,9 +385,13 @@ final class DeviceModel: ObservableObject {
             async let wheel = Self.readWheel(transport)
             async let pointerSpeed = Self.readPointerSpeed(transport)
             async let nickname = Self.readNickname(transport)
+            async let backlight = Self.readBacklight(transport)
+            async let fnLock = Self.readFnLock(transport)
+            async let onboard = Self.readOnboard(transport)
 
-            let (b, d, s, btn, fw, hs, wh, ps, nick) = await (
-                battery, dpi, smart, buttons, firmware, hosts, wheel, pointerSpeed, nickname
+            let (b, d, s, btn, fw, hs, wh, ps, nick, bl, fnl, ob) = await (
+                battery, dpi, smart, buttons, firmware, hosts, wheel, pointerSpeed, nickname,
+                backlight, fnLock, onboard
             )
 
             let snapshot = DeviceTelemetry(
@@ -334,6 +404,9 @@ final class DeviceModel: ObservableObject {
                 wheel: wh,
                 pointerSpeed: ps,
                 wirelessLink: .unknown,
+                backlight: bl,
+                fnLock: fnl,
+                onboard: ob,
                 lastUpdated: Date()
             )
             telemetry = snapshot
@@ -360,6 +433,25 @@ final class DeviceModel: ObservableObject {
                     threshold: store.app.lowBatteryThreshold,
                     enabled: store.app.lowBatteryNotificationsEnabled
                 )
+                // Connection up event — battery readout means the device is talking.
+                OptuneNotifications.shared.notifyConnectionChange(
+                    deviceKey: key,
+                    deviceLabel: label,
+                    connected: true,
+                    enabled: store.app.connectionNotificationsEnabled
+                )
+                // Host-switch event.
+                if case .ok(let currentHost, let hostList) = hs {
+                    let hostName = hostList.first(where: { $0.index == currentHost })?.name
+                        ?? "Host \(currentHost + 1)"
+                    OptuneNotifications.shared.notifyHostSwitch(
+                        deviceKey: key,
+                        deviceLabel: label,
+                        hostIndex: currentHost,
+                        hostName: hostName,
+                        enabled: store.app.hostSwitchNotificationsEnabled
+                    )
+                }
             }
         } catch HIDPPError.deviceNotFound {
             telemetry = DeviceTelemetry(
@@ -372,6 +464,9 @@ final class DeviceModel: ObservableObject {
                 wheel: .unavailable("Device not in registry"),
                 pointerSpeed: .unavailable("Device not in registry"),
                 wirelessLink: .unavailable("Device not in registry"),
+                backlight: .unavailable("Device not in registry"),
+                fnLock: .unavailable("Device not in registry"),
+                onboard: .unavailable("Device not in registry"),
                 lastUpdated: Date()
             )
         } catch HIDPPError.openFailed(let r) {
@@ -386,6 +481,9 @@ final class DeviceModel: ObservableObject {
                 wheel: .unavailable(msg),
                 pointerSpeed: .unavailable(msg),
                 wirelessLink: .unavailable(msg),
+                backlight: .unavailable(msg),
+                fnLock: .unavailable(msg),
+                onboard: .unavailable(msg),
                 lastUpdated: Date()
             )
         } catch {
@@ -400,6 +498,9 @@ final class DeviceModel: ObservableObject {
                 wheel: .unavailable(msg),
                 pointerSpeed: .unavailable(msg),
                 wirelessLink: .unavailable(msg),
+                backlight: .unavailable(msg),
+                fnLock: .unavailable(msg),
+                onboard: .unavailable(msg),
                 lastUpdated: Date()
             )
         }
@@ -592,6 +693,40 @@ final class DeviceModel: ObservableObject {
         }
     }
 
+    private static func readBacklight(_ transport: HIDPPTransport) async -> DeviceTelemetry.Backlight {
+        do {
+            guard let s = try await Backlight2Feature.snapshot(on: transport) else {
+                return .unavailable("0x1982 not exposed")
+            }
+            return .ok(enabled: s.enabled, mode: s.mode.rawValue, level: s.level, maxLevel: s.maxLevel)
+        } catch {
+            return .unavailable("\(error)")
+        }
+    }
+
+    private static func readFnLock(_ transport: HIDPPTransport) async -> DeviceTelemetry.FnLock {
+        do {
+            guard let s = try await FnInversionFeature.snapshot(on: transport, host: 0xFF) else {
+                return .unavailable("0x40A3 not exposed")
+            }
+            return .ok(host: s.host, fnLockOn: s.fnLockOn, isInvertible: s.isInvertible)
+        } catch {
+            return .unavailable("\(error)")
+        }
+    }
+
+    private static func readOnboard(_ transport: HIDPPTransport) async -> DeviceTelemetry.Onboard {
+        do {
+            guard let s = try await OnboardProfilesFeature.snapshot(on: transport) else {
+                return .unavailable("0x8100 not exposed")
+            }
+            let count = s.description?.profileCount ?? 0
+            return .ok(mode: s.mode.rawValue, activeProfile: s.activeProfile, profileCount: count)
+        } catch {
+            return .unavailable("\(error)")
+        }
+    }
+
     // MARK: - v0.4 writers
 
     private static func writeWheelRatchet(_ ratchet: Bool, on device: LogitechDevice) async {
@@ -686,6 +821,82 @@ final class DeviceModel: ObservableObject {
             try await ResetFeature.reset(on: transport, featureIndex: lookup.featureIndex)
         } catch { }
     }
+
+    private static func writeBacklight(
+        enabled: Bool,
+        mode: UInt8,
+        level: UInt8,
+        on device: LogitechDevice
+    ) async {
+        guard let transport = try? HIDPPTransport(matching: device) else { return }
+        defer { transport.close() }
+        do {
+            let lookup = try await RootFeature.getFeature(on: transport, featureID: Backlight2Feature.id)
+            guard lookup.isPresent else { return }
+            let m = Backlight2Feature.Mode(rawValue: mode) ?? .auto
+            try await Backlight2Feature.setStatus(
+                on: transport,
+                featureIndex: lookup.featureIndex,
+                enabled: enabled,
+                mode: m,
+                level: level
+            )
+        } catch { }
+    }
+
+    private static func writeFnLock(
+        on: Bool,
+        host: UInt8,
+        on device: LogitechDevice
+    ) async {
+        guard let transport = try? HIDPPTransport(matching: device) else { return }
+        defer { transport.close() }
+        do {
+            let lookup = try await RootFeature.getFeature(on: transport, featureID: FnInversionFeature.id)
+            guard lookup.isPresent else { return }
+            try await FnInversionFeature.setStatus(
+                on: transport,
+                featureIndex: lookup.featureIndex,
+                host: host,
+                fnLockOn: on
+            )
+        } catch { }
+    }
+
+    private static func writeOnboardMode(
+        mode: UInt8,
+        on device: LogitechDevice
+    ) async {
+        guard let transport = try? HIDPPTransport(matching: device) else { return }
+        defer { transport.close() }
+        do {
+            let lookup = try await RootFeature.getFeature(on: transport, featureID: OnboardProfilesFeature.id)
+            guard lookup.isPresent else { return }
+            let m = OnboardProfilesFeature.Mode(rawValue: mode) ?? .host
+            try await OnboardProfilesFeature.setMode(
+                on: transport,
+                featureIndex: lookup.featureIndex,
+                mode: m
+            )
+        } catch { }
+    }
+
+    private static func writeOnboardActiveProfile(
+        slot: UInt8,
+        on device: LogitechDevice
+    ) async {
+        guard let transport = try? HIDPPTransport(matching: device) else { return }
+        defer { transport.close() }
+        do {
+            let lookup = try await RootFeature.getFeature(on: transport, featureID: OnboardProfilesFeature.id)
+            guard lookup.isPresent else { return }
+            try await OnboardProfilesFeature.setActiveProfile(
+                on: transport,
+                featureIndex: lookup.featureIndex,
+                profile: slot
+            )
+        } catch { }
+    }
 }
 
 // MARK: - Unavailable-reason helpers (used by DeviceModel.permissionMissing)
@@ -709,6 +920,24 @@ extension DeviceTelemetry.SmartShift {
 }
 
 extension DeviceTelemetry.Buttons {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.Backlight {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.FnLock {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.Onboard {
     var unavailableReason: String? {
         if case .unavailable(let why) = self { return why } else { return nil }
     }

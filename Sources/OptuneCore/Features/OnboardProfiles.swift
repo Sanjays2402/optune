@@ -81,6 +81,39 @@ public enum OnboardProfilesFeature {
         return resp.params.first ?? 0
     }
 
+    /// Switch between onboard-profile mode (mouse runs from flash) and host-mode
+    /// (driver pushes settings each session). function 0x2 — setActiveProfileMode.
+    public static func setMode(
+        on transport: HIDPPTransport,
+        featureIndex: UInt8,
+        mode: Mode
+    ) async throws {
+        var params = [UInt8](repeating: 0, count: 16)
+        params[0] = mode.rawValue
+        _ = try await transport.sendLong(
+            featureIndex: featureIndex,
+            function: 0x2,
+            params: params
+        )
+    }
+
+    /// Switch the active onboard slot (1...profileCount). function 0x5 —
+    /// setActiveProfile. Only meaningful when mode == .onboard.
+    public static func setActiveProfile(
+        on transport: HIDPPTransport,
+        featureIndex: UInt8,
+        profile: UInt8
+    ) async throws {
+        var params = [UInt8](repeating: 0, count: 16)
+        params[0] = 0           // memory ID (0 = onboard flash)
+        params[1] = profile     // 1-indexed
+        _ = try await transport.sendLong(
+            featureIndex: featureIndex,
+            function: 0x5,
+            params: params
+        )
+    }
+
     public static func snapshot(on transport: HIDPPTransport) async throws -> Status? {
         let lookup = try await RootFeature.getFeature(on: transport, featureID: id)
         guard lookup.isPresent else { return nil }

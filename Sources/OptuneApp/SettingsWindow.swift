@@ -10,40 +10,57 @@ struct SettingsWindow: View {
     @State private var selection: Pane = .devices
 
     enum Pane: String, Hashable, CaseIterable, Identifiable {
-        case devices, pointer, wheel, buttons, hosts, general, about
+        case devices, pointer, wheel, buttons, hosts
+        case profiles, keyboard, onboard, notifications
+        case general, updates, about
         var id: String { rawValue }
 
         var label: String {
             switch self {
-            case .devices: return "Devices"
-            case .pointer: return "Pointer"
-            case .wheel:   return "Wheel"
-            case .buttons: return "Buttons"
-            case .hosts:   return "Hosts"
-            case .general: return "General"
-            case .about:   return "About"
+            case .devices:       return "Devices"
+            case .pointer:       return "Pointer"
+            case .wheel:         return "Wheel"
+            case .buttons:       return "Buttons"
+            case .hosts:         return "Hosts"
+            case .profiles:      return "App Profiles"
+            case .keyboard:      return "Keyboard"
+            case .onboard:       return "Onboard"
+            case .notifications: return "Notifications"
+            case .general:       return "General"
+            case .updates:       return "Updates"
+            case .about:         return "About"
             }
         }
         var symbol: String {
             switch self {
-            case .devices: return "computermouse"
-            case .pointer: return "scope"
-            case .wheel:   return "circle.dotted.circle"
-            case .buttons: return "rectangle.grid.2x2"
-            case .hosts:   return "rectangle.connected.to.line.below"
-            case .general: return "gear"
-            case .about:   return "info.circle"
+            case .devices:       return "computermouse"
+            case .pointer:       return "scope"
+            case .wheel:         return "circle.dotted.circle"
+            case .buttons:       return "rectangle.grid.2x2"
+            case .hosts:         return "rectangle.connected.to.line.below"
+            case .profiles:      return "app.badge.checkmark"
+            case .keyboard:      return "keyboard"
+            case .onboard:       return "internaldrive"
+            case .notifications: return "bell.badge"
+            case .general:       return "gear"
+            case .updates:       return "arrow.down.circle"
+            case .about:         return "info.circle"
             }
         }
         var tint: Color {
             switch self {
-            case .devices: return .accentColor
-            case .pointer: return .accentColor
-            case .wheel:   return .teal
-            case .buttons: return .pink
-            case .hosts:   return .indigo
-            case .general: return .gray
-            case .about:   return .accentColor
+            case .devices:       return .accentColor
+            case .pointer:       return .accentColor
+            case .wheel:         return .teal
+            case .buttons:       return .pink
+            case .hosts:         return .indigo
+            case .profiles:      return .orange
+            case .keyboard:      return .mint
+            case .onboard:       return .purple
+            case .notifications: return .yellow
+            case .general:       return .gray
+            case .updates:       return .blue
+            case .about:         return .accentColor
             }
         }
     }
@@ -63,13 +80,18 @@ struct SettingsWindow: View {
                         }
                         Group {
                             switch selection {
-                            case .devices: DevicesPane()
-                            case .pointer: PointerPane()
-                            case .wheel:   WheelPane()
-                            case .buttons: ButtonsPane()
-                            case .hosts:   HostsPane()
-                            case .general: GeneralPane()
-                            case .about:   AboutPane()
+                            case .devices:       DevicesPane()
+                            case .pointer:       PointerPane()
+                            case .wheel:         WheelPane()
+                            case .buttons:       ButtonsPane()
+                            case .hosts:         HostsPane()
+                            case .profiles:      AppProfilesPane()
+                            case .keyboard:      KeyboardPane()
+                            case .onboard:       OnboardPane()
+                            case .notifications: NotificationsPane()
+                            case .general:       GeneralPane()
+                            case .updates:       UpdatesPane()
+                            case .about:         AboutPane()
                             }
                         }
                     }
