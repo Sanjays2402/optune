@@ -208,8 +208,22 @@ final class DeviceModel: ObservableObject {
 
     func refresh() {
         let next = HIDEnumerator.logitechDevices()
+        let appearing = Set(next.map { $0.productID }).subtracting(devices.map { $0.productID })
         self.devices = next
         self.lastRefresh = Date()
+        // For any newly-appearing device, hydrate persisted remap bindings and
+        // stand up the RemapEngine asynchronously.
+        if !appearing.isEmpty {
+            for device in next where appearing.contains(device.productID) {
+                let persisted = store.settings(for: device).remapBindings ?? []
+                if !persisted.isEmpty {
+                    var map: [UInt16: RemapAction] = [:]
+                    for b in persisted { map[b.cid] = b.action }
+                    self.remapBindings = map
+                    Task { [weak self] in await self?.reconcileRemapEngine(for: device) }
+                }
+            }
+        }
     }
 
     func refreshTelemetryNow() {
@@ -372,6 +386,75 @@ final class DeviceModel: ObservableObject {
             self.store.update(for: device) { $0.thumbWheelInverted = inverted }
             await self.pollTelemetry()
         }
+    }
+
+    // MARK: - Button remap (HID++ 0x1B04 + CGEvent dispatch)
+
+    /// In-memory engine. Allocated on first remap apply, torn down on disconnect.
+    @Published private(set) var remapBindings: [UInt16: RemapAction] = [:]
+    private var remapEngine: RemapEngine?
+    private var remapTransport: HIDPPTransport?
+
+    /// Look up the current action for a CID (UI helper).
+    func remapAction(for cid: UInt16) -> RemapAction? {
+        remapBindings[cid]
+    }
+
+    /// Set or clear a remap binding. Persists immediately, reconciles firmware
+    /// divert flags, and starts the dispatch engine if there's now a non-`.none`
+    /// binding.
+    func setRemap(cid: UInt16, action: RemapAction) {
+        // Update in-memory state first so UI is immediately responsive.
+        if action == .none {
+            remapBindings.removeValue(forKey: cid)
+        } else {
+            remapBindings[cid] = action
+        }
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            // Persist to disk.
+            let bindings = self.remapBindings.map { RemapBinding(cid: $0.key, action: $0.value) }
+            self.store.update(for: device) { $0.remapBindings = bindings.isEmpty ? nil : bindings }
+            // Reconcile with firmware + engine.
+            await self.reconcileRemapEngine(for: device)
+        }
+    }
+
+    /// Stand up (or refresh) the RemapEngine for a device. Idempotent — safe
+    /// to call multiple times. Pulls the persisted bindings from store.
+    private func reconcileRemapEngine(for device: LogitechDevice) async {
+        let bindings = store.settings(for: device).remapBindings ?? []
+        let nonEmpty = bindings.contains { $0.action != .none }
+
+        // Tear down if there are no active bindings.
+        guard nonEmpty else {
+            if let engine = remapEngine {
+                if let t = remapTransport,
+                   let lookup = try? await RootFeature.getFeature(on: t, featureID: ReprogControlsV4Feature.id),
+                   lookup.isPresent {
+                    await engine.teardown(featureIndex: lookup.featureIndex)
+                }
+                remapEngine = nil
+                remapTransport?.close()
+                remapTransport = nil
+            }
+            return
+        }
+
+        // Open a transport (or reuse existing one).
+        if remapTransport == nil {
+            remapTransport = try? HIDPPTransport(matching: device)
+        }
+        guard let transport = remapTransport else { return }
+
+        let lookup = try? await RootFeature.getFeature(on: transport, featureID: ReprogControlsV4Feature.id)
+        guard let lookup, lookup.isPresent else { return }
+
+        if remapEngine == nil {
+            remapEngine = RemapEngine(transport: transport)
+        }
+        await remapEngine?.apply(bindings: bindings, featureIndex: lookup.featureIndex)
     }
 
     var recognizedDevices: [LogitechDevice] {
