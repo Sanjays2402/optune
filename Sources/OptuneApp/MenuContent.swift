@@ -19,10 +19,6 @@ struct MenuContent: View {
                 DeviceCard(device: device, descriptor: descriptor, telemetry: model.telemetry)
                     .padding(.horizontal, OptuneDesign.Spacing.lg)
                     .padding(.bottom, OptuneDesign.Spacing.md)
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.96).combined(with: .opacity),
-                        removal: .opacity
-                    ))
             } else {
                 EmptyDeviceCard()
                     .padding(.horizontal, OptuneDesign.Spacing.lg)
@@ -41,7 +37,6 @@ struct MenuContent: View {
             .padding(.horizontal, OptuneDesign.Spacing.sm)
             .padding(.vertical, OptuneDesign.Spacing.sm)
         }
-        .animation(OptuneDesign.Motion.calm, value: model.primaryDevice?.id)
         .background(LiquidGlassSurface())
         .clipShape(RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous))
     }
