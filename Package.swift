@@ -8,6 +8,7 @@ let package = Package(
     ],
     products: [
         .library(name: "OptuneCore", targets: ["OptuneCore"]),
+        .library(name: "OptuneUI", targets: ["OptuneUI"]),
         .executable(name: "optune", targets: ["OptuneCLI"]),
         .executable(name: "OptuneApp", targets: ["OptuneApp"]),
         .executable(name: "OptuneShowcase", targets: ["OptuneShowcase"]),
@@ -20,6 +21,11 @@ let package = Package(
             name: "OptuneCore",
             path: "Sources/OptuneCore"
         ),
+        .target(
+            name: "OptuneUI",
+            dependencies: ["OptuneCore"],
+            path: "Sources/OptuneUI"
+        ),
         .executableTarget(
             name: "OptuneCLI",
             dependencies: [
@@ -30,12 +36,12 @@ let package = Package(
         ),
         .executableTarget(
             name: "OptuneApp",
-            dependencies: ["OptuneCore"],
+            dependencies: ["OptuneCore", "OptuneUI"],
             path: "Sources/OptuneApp"
         ),
         .executableTarget(
             name: "OptuneShowcase",
-            dependencies: ["OptuneCore"],
+            dependencies: ["OptuneCore", "OptuneUI"],
             path: "Sources/OptuneShowcase"
         ),
         .testTarget(
