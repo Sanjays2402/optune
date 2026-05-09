@@ -2,7 +2,7 @@
 
 A modern, open-source Logitech Options+ replacement — native macOS, written in Swift 6.
 
-> **Status: v0.3.0 — feature complete on the read path.** Battery, DPI, SmartShift, and reprogrammable-button enumeration all run live over HID++ 2.0. Runtime button remap (CGEventTap) lands in v0.4.
+> **Status: v0.5.0 — five sidebar panes, eight HID++ features, per-app profiles, keyboard backlight, onboard profiles, settings export/import, in-app updates.** Latest release: [v0.5.0](https://github.com/Sanjays2402/optune/releases/latest) (universal DMG, ad-hoc signed).
 
 ![Optune showcase](docs/screenshots/v0.3-hero.png)
 
@@ -14,36 +14,50 @@ Logitech Options+ is closed-source, ad-laden, runs background "Logi AI" services
 
 Optune is:
 - 100% native macOS — Swift 6 + SwiftUI, Liquid Glass on macOS 26
-- A single signed `OptuneApp.app` plus an `optune` CLI
+- A single signed `OptuneApp.app` plus an `optune` CLI — ~3.8 MB binary, zero dependencies
 - IOKit HIDManager for device discovery — no kernel extensions, no daemons, no login items
 - GPL-3.0, no telemetry, no account, no ads
 
-## What works in v0.3.0
+## What works in v0.5.0
 
-- ✅ Device enumeration over Bluetooth / Bolt / Unifying
-- ✅ HID++ 2.0 transport (short + long reports, sw-id correlation, async send/recv)
-- ✅ Feature index lookup via Root (`0x0000`)
-- ✅ **UnifiedBattery (`0x1004`)** — live percent, charging state, external power
-- ✅ **AdjustableDPI (`0x2201`)** — read range + current, set new value (slider in Settings)
-- ✅ **SmartShift (`0x2111`)** — read/write enabled state and sensitivity threshold
-- ✅ **ReprogControlsV4 (`0x1B04`)** — enumerates every reprogrammable control with its CID, position, and flags
+**HID++ features (read + write)**
+- ✅ **UnifiedBattery** (`0x1004`) — live percent, charging state, external power, sparkline history
+- ✅ **AdjustableDPI** (`0x2201`) — read range + current, set new value
+- ✅ **SmartShift** (`0x2111`) — toggle + sensitivity threshold
+- ✅ **ReprogControlsV4** (`0x1B04`) — full button enumeration, runtime remap via `CGEventTap`
+- ✅ **HostsInfo** (`0x1815`) — multi-host pairing readout + host switching
+- ✅ **OnboardProfiles** (`0x8100`) — host vs onboard mode, active slot picker
+- ✅ **Backlight2** (`0x1982`) — keyboard backlight on/off + mode + brightness
+- ✅ **FnInversion** (`0x40A3`) — Fn-lock toggle (respects per-keyboard invertible flag)
+
+**Surfaces**
 - ✅ Liquid Glass menu bar dropdown with live telemetry pills
-- ✅ Sidebar Settings window with Devices · Pointer · Buttons · About panes
-- ✅ `optune` CLI: `devices`, `doctor`, `battery`, `dpi`, `smartshift`, `buttons`
+- ✅ Sidebar Settings window — 11 panes: Devices · Pointer · Wheel · Buttons · Hosts · Profiles · Keyboard · Onboard · Notifications · Updates · About
+- ✅ Per-app profiles: `NSWorkspace` observer flips DPI/SmartShift/wheel when focused app changes
+- ✅ macOS notifications: low-battery (with threshold), connection changes, host switches
+- ✅ First-run welcome flow + Cmd-Shift-E/I settings export/import (JSON)
+- ✅ In-app GitHub Releases poller (no Sparkle SDK)
+- ✅ `optune` CLI: `devices`, `doctor`, `battery`, `dpi`, `smartshift`, `buttons`, `hosts`
 
 ### Verified devices
 
-MX Master 3S (Bluetooth + USB), MX Master 3, MX Master 4, MX Master 2S, MX Master, MX Anywhere 3S/3/2S, MX Vertical. All entries in `Sources/OptuneCore/DeviceRegistry.swift` carry per-family DPI bounds and capability flags so the UI grays out features the firmware doesn't expose.
+MX Master 3S (BLE + USB), MX Master 3, MX Master 4, MX Master 2S, MX Master, MX Anywhere 3S/3/2S, MX Vertical. MX Keys S / MX Keys keyboard families pick up the Backlight + Fn-lock pane. All entries in `Sources/OptuneCore/DeviceRegistry.swift` carry per-family DPI bounds and capability flags so the UI hides features the firmware doesn't expose.
 
 ## Roadmap
 
 | Milestone | Scope |
 |-----------|-------|
-| **v0.4** | Runtime button remap via `CGEventTap`, gesture button bindings, per-app profiles |
-| **v0.5** | Smooth-scroll feature, gestures, MX Keys S keyboard support |
-| **v1.0** | Code-signed notarised universal release, Sparkle auto-update, Homebrew cask |
+| **v0.5** ✅ | Per-app profiles, keyboard backlight + Fn-lock, onboard mode, settings export/import, welcome flow, in-app updates |
+| **v0.6** | SmoothScroll (`0x2121`), gesture button virtual events, onboard slot-content writes |
+| **v1.0** | Developer-ID signed + notarised, Homebrew cask (`brew install --cask optune`), localized strings |
 
-## Install (from source)
+## Install
+
+**End users (recommended):** grab the latest DMG from [Releases](https://github.com/Sanjays2402/optune/releases/latest), drag Optune.app to /Applications. The build is ad-hoc signed (no Apple Developer cert), so first launch needs a right-click → **Open** to bypass Gatekeeper. After that it launches normally.
+
+Optune needs **Input Monitoring** permission to send HID++ feature requests. The welcome flow links you straight to System Settings → Privacy & Security → Input Monitoring on first launch.
+
+## Build from source
 
 Requires macOS 15+ and Swift 6.0+. macOS 26 unlocks the Liquid Glass material; older releases fall back to composited materials that look nearly identical.
 
@@ -52,10 +66,11 @@ git clone https://github.com/Sanjays2402/optune.git
 cd optune
 swift build -c release
 ./.build/release/optune devices
-./.build/release/OptuneApp        # menu bar app
+bash Scripts/bundle-app.sh release        # produces .build/OptuneApp.app
+open .build/OptuneApp.app
 ```
 
-Optune needs **Input Monitoring** permission to send HID++ feature requests. macOS will prompt the first time you run something that talks to the device. Granted? Re-run `optune doctor` to confirm.
+Build prerequisites and the `optune doctor` self-test are documented under [docs/](docs/).
 
 ## CLI usage
 

@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve version
         id: ver
@@ -78,7 +78,7 @@ jobs:
           shasum -a 256 "$DMG" | tee "$DMG.sha256"
 
       - name: Upload artifacts (always)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Optune-${{ steps.ver.outputs.version }}
           path: |
@@ -127,7 +127,7 @@ jobs:
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: Optune ${{ steps.ver.outputs.tag }}
