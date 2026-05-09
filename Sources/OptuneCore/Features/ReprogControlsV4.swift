@@ -75,6 +75,107 @@ public enum ReprogControlsV4Feature {
         )
     }
 
+    /// Per-CID reporting/diversion settings managed by fn 0x2 (get) and fn 0x3 (set).
+    public struct Reporting: Sendable, Equatable, Hashable {
+        public let cid: UInt16
+        /// True → events route over HID++ instead of native HID. Required for
+        /// host-side remapping. Cleared on disconnect.
+        public var diverted: Bool
+        /// True → CID continues firing repeats while held (relevant for some buttons).
+        public var persistentDivert: Bool
+        /// True → "raw XY" reporting, only meaningful when control supports it.
+        public var rawXYDiverted: Bool
+        /// Optional remap CID — when nonzero the firmware reports this CID
+        /// instead of its native one (host-side remap is the more flexible path).
+        public var remap: UInt16
+
+        public init(cid: UInt16, diverted: Bool = false, persistentDivert: Bool = false, rawXYDiverted: Bool = false, remap: UInt16 = 0) {
+            self.cid = cid
+            self.diverted = diverted
+            self.persistentDivert = persistentDivert
+            self.rawXYDiverted = rawXYDiverted
+            self.remap = remap
+        }
+    }
+
+    /// `function = 0x2` — getControlReporting(cid).
+    /// Wire format response (long): `[cid_hi, cid_lo, flags, remap_hi, remap_lo, ...]`
+    /// flags bits: 0x01 = persistentDiverted, 0x02 = diverted, 0x04 = rawXYDiverted.
+    public static func getReporting(
+        on transport: HIDPPTransport,
+        featureIndex: UInt8,
+        cid: UInt16
+    ) async throws -> Reporting {
+        let resp = try await transport.sendLong(
+            featureIndex: featureIndex,
+            function: 0x2,
+            params: [UInt8(cid >> 8), UInt8(cid & 0xFF)]
+        )
+        guard resp.params.count >= 5 else { throw HIDPPError.invalidResponse }
+        let flags = resp.params[2]
+        let remap = (UInt16(resp.params[3]) << 8) | UInt16(resp.params[4])
+        return Reporting(
+            cid: cid,
+            diverted: (flags & 0x02) != 0,
+            persistentDivert: (flags & 0x01) != 0,
+            rawXYDiverted: (flags & 0x04) != 0,
+            remap: remap
+        )
+    }
+
+    /// `function = 0x3` — setControlReporting(cid, flags, remap).
+    /// Wire format request: `[cid_hi, cid_lo, flag_mask, remap_hi, remap_lo]`
+    /// where bits we set match the get bitfield. The firmware ignores any bit
+    /// it doesn't understand; the mask says which bits we mean.
+    @discardableResult
+    public static func setReporting(
+        on transport: HIDPPTransport,
+        featureIndex: UInt8,
+        reporting: Reporting
+    ) async throws -> HIDPPResponse {
+        var flags: UInt8 = 0
+        // Hi nibble = "change-mask" (which bits to apply).  Lo nibble = values.
+        // We always set all three managed bits + remap (firmware is happy with
+        // an "all bits authoritative" write; matches Solaar's pattern).
+        let changeMask: UInt8 = 0xF0   // change persistent | diverted | rawXY | remap
+        if reporting.persistentDivert { flags |= 0x01 }
+        if reporting.diverted        { flags |= 0x02 }
+        if reporting.rawXYDiverted   { flags |= 0x04 }
+        let payload: [UInt8] = [
+            UInt8(reporting.cid >> 8), UInt8(reporting.cid & 0xFF),
+            changeMask | flags,
+            UInt8(reporting.remap >> 8), UInt8(reporting.remap & 0xFF)
+        ]
+        return try await transport.sendLong(
+            featureIndex: featureIndex,
+            function: 0x3,
+            params: payload
+        )
+    }
+
+    /// Decode a hardware-initiated 0x1B04 notification.
+    /// fn 0x0: button-down/up event, params = [cid_hi, cid_lo, ...].
+    /// fn 0x1: raw XY event, params = [x_hi, x_lo, y_hi, y_lo, ...].
+    /// We surface the button-press path here (gestures/remap consumer).
+    public struct ButtonEvent: Sendable, Equatable {
+        public let pressedCIDs: Set<UInt16>
+    }
+
+    public static func decodeButtonEvent(_ event: HIDPPResponse) -> ButtonEvent? {
+        guard event.swID == 0, event.function == 0x0 else { return nil }
+        var pressed: Set<UInt16> = []
+        // The params contain up to 4 currently-pressed CIDs (16-bit big-endian).
+        // 0x0000 = no button.
+        let bytes = event.params
+        var i = 0
+        while i + 1 < bytes.count && i < 8 {
+            let cid = (UInt16(bytes[i]) << 8) | UInt16(bytes[i + 1])
+            if cid != 0 { pressed.insert(cid) }
+            i += 2
+        }
+        return ButtonEvent(pressedCIDs: pressed)
+    }
+
     /// Walk Root → ReprogControlsV4 → enumerate every control. Capped at 32.
     public static func snapshot(
         on transport: HIDPPTransport,

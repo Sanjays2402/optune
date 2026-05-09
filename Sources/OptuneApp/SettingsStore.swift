@@ -15,6 +15,8 @@ struct DeviceSettings: Codable, Equatable {
     var pointerSpeedMultiplier: Double?
     /// Whether to invert the wheel.
     var wheelInverted: Bool?
+    /// Per-CID button remap bindings (HID++ 0x1B04 + CGEventTap dispatch).
+    var remapBindings: [RemapBinding]?
     /// Whether to engage ratchet on connect (only meaningful for HiResWheel-capable devices).
     var wheelRatchet: Bool?
     /// Whether to divert the side thumb wheel via 0x2150 (silences/captures it on macOS).

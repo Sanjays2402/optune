@@ -83,6 +83,13 @@ public final class HIDPPTransport: @unchecked Sendable {
     private var isOpen = false
     private var deviceIndex: UInt8 = 0xFF
 
+    /// Subscribers to swID==0 hardware-initiated notifications (button events,
+    /// thumb wheel diversion, gesture frames, host-switch notifications, etc.).
+    /// Frames are delivered on the transport's serial queue.
+    public typealias EventHandler = @Sendable (HIDPPResponse) -> Void
+    private var eventSubscribers: [(token: UInt64, handler: EventHandler)] = []
+    private var nextSubToken: UInt64 = 1
+
     /// Open the underlying IOHIDDevice and start input-report scheduling on the main run loop.
     public init(matching device: LogitechDevice) throws {
         guard let hidDevice = HIDPPTransport.findIOHIDDevice(matching: device) else {
@@ -131,6 +138,27 @@ public final class HIDPPTransport: @unchecked Sendable {
             // Fail any pending requests so callers don't hang.
             for (_, cont) in pending { cont.resume(throwing: HIDPPError.closed) }
             pending.removeAll()
+            eventSubscribers.removeAll()
+        }
+    }
+
+    /// Subscribe to hardware-initiated HID++ notifications (swID==0). Returns a
+    /// token; pass it back to `removeEventSubscriber(_:)` to unsubscribe.
+    /// Handler runs on the transport's serial queue.
+    @discardableResult
+    public func addEventSubscriber(_ handler: @escaping EventHandler) -> UInt64 {
+        return queue.sync {
+            let token = nextSubToken
+            nextSubToken &+= 1
+            eventSubscribers.append((token, handler))
+            return token
+        }
+    }
+
+    /// Remove a previously-registered event subscriber by token.
+    public func removeEventSubscriber(_ token: UInt64) {
+        queue.sync {
+            eventSubscribers.removeAll { $0.token == token }
         }
     }
 
@@ -270,8 +298,25 @@ public final class HIDPPTransport: @unchecked Sendable {
         let swID = fnByte & 0x0F
         let params = Array(raw.dropFirst(4))
 
-        // sw-id 0 means hardware-initiated event (battery alert, etc.) — drop for now.
-        guard swID != 0 else { return }
+        // sw-id 0 means hardware-initiated event (button press, thumb-wheel
+        // diversion, gesture frame, host-switch). Fan out to subscribers on
+        // the serial queue and return — there's no waiting continuation.
+        guard swID != 0 else {
+            queue.async { [self] in
+                guard !eventSubscribers.isEmpty else { return }
+                let response = HIDPPResponse(
+                    reportID: reportID,
+                    deviceIndex: devIdx,
+                    featureIndex: featureIdx,
+                    function: function,
+                    swID: 0,
+                    params: params,
+                    raw: raw
+                )
+                for sub in eventSubscribers { sub.handler(response) }
+            }
+            return
+        }
 
         queue.async { [self] in
             guard let cont = pending.removeValue(forKey: swID) else { return }

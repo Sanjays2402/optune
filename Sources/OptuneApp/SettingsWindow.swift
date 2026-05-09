@@ -784,7 +784,7 @@ private struct ButtonsPane: View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.xl) {
             PageHeader(
                 "Buttons",
-                subtitle: "Read-only catalog of reprogrammable controls. Runtime remap arrives in v0.5."
+                subtitle: "Reprogrammable controls (HID++ 0x1B04). Pick a host action per button — the firmware diverts events to Optune over HID++ and we synthesize the action with CGEvent."
             )
 
             if case .ok(let controls) = model.telemetry.buttons {
@@ -835,6 +835,7 @@ private struct ButtonsPane: View {
 
 private struct ButtonRow: View {
     let control: DeviceTelemetry.SerializableControl
+    @EnvironmentObject private var model: DeviceModel
 
     var body: some View {
         HStack(spacing: OptuneDesign.Spacing.md) {
@@ -855,13 +856,66 @@ private struct ButtonRow: View {
                     .foregroundStyle(.tertiary)
             }
             Spacer()
-            CapabilityPill(
-                text: control.isReprogrammable ? "Reprog" : "Fixed",
-                tone: control.isReprogrammable ? .accent : .neutral
-            )
+            if control.isReprogrammable {
+                remapMenu
+            } else {
+                CapabilityPill(text: "Fixed", tone: .neutral)
+            }
         }
         .padding(.horizontal, OptuneDesign.Spacing.lg - 2)
         .padding(.vertical, 10)
+    }
+
+    private var currentAction: RemapAction {
+        model.remapAction(for: control.cid) ?? .none
+    }
+
+    @ViewBuilder
+    private var remapMenu: some View {
+        Menu {
+            Button("Disabled") { model.setRemap(cid: control.cid, action: .none) }
+            Section("System") {
+                Button("Mission Control") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 0)) }
+                Button("Application Windows") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 1)) }
+                Button("Show Desktop") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 2)) }
+                Button("Launchpad") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 3)) }
+            }
+            Section("Keystroke") {
+                // ⌘C / ⌘V / ⌘Z presets — most-asked button-remap recipes.
+                Button("⌘C — Copy") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 8, modifiers: CGEventFlags.maskCommand.rawValue)) }
+                Button("⌘V — Paste") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 9, modifiers: CGEventFlags.maskCommand.rawValue)) }
+                Button("⌘Z — Undo")  { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 6, modifiers: CGEventFlags.maskCommand.rawValue)) }
+                Button("⌘⇧Z — Redo") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 6, modifiers: CGEventFlags.maskCommand.rawValue | CGEventFlags.maskShift.rawValue)) }
+                Button("⌘Tab — App switch") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 48, modifiers: CGEventFlags.maskCommand.rawValue)) }
+            }
+            Section("App") {
+                Button("Safari")  { model.setRemap(cid: control.cid, action: .openApp(bundleID: "com.apple.Safari")) }
+                Button("Terminal") { model.setRemap(cid: control.cid, action: .openApp(bundleID: "com.apple.Terminal")) }
+                Button("Notes")   { model.setRemap(cid: control.cid, action: .openApp(bundleID: "com.apple.Notes")) }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(currentAction.displayName)
+                    .font(OptuneDesign.Typography.caption)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.accentColor.opacity(currentAction == .none ? 0.05 : 0.18))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(Color.accentColor.opacity(currentAction == .none ? 0.10 : 0.30), lineWidth: 0.5)
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 
     private var symbol: String {
