@@ -41,10 +41,45 @@ struct OptuneAppSettings: Codable, Equatable {
     var lowBatteryThreshold: Int = 20
     /// Whether the user opted into low-battery notifications.
     var lowBatteryNotificationsEnabled: Bool = true
+    /// Notify when a device connects/disconnects.
+    var connectionNotificationsEnabled: Bool = true
+    /// Notify when the host changes (multi-host devices).
+    var hostSwitchNotificationsEnabled: Bool = true
     /// Whether Optune launches at login (mirror of SMAppService state).
     var launchAtLogin: Bool = false
     /// Whether to auto-apply persisted DPI/SmartShift on reconnect.
     var autoApplyOnReconnect: Bool = true
+    /// Whether per-app profiles are active.
+    var appProfilesEnabled: Bool = true
+    /// User-configured per-app profile list.
+    var appProfiles: [AppProfile] = []
+    /// Auto-update check toggle (Sparkle uses this).
+    var autoUpdateEnabled: Bool = true
+    /// Whether the welcome window has been completed once.
+    var welcomeCompleted: Bool = false
+
+    init() {}
+
+    enum CodingKeys: String, CodingKey {
+        case lowBatteryThreshold, lowBatteryNotificationsEnabled
+        case connectionNotificationsEnabled, hostSwitchNotificationsEnabled
+        case launchAtLogin, autoApplyOnReconnect
+        case appProfilesEnabled, appProfiles, autoUpdateEnabled, welcomeCompleted
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        lowBatteryThreshold              = (try? c.decodeIfPresent(Int.self,    forKey: .lowBatteryThreshold))              ?? 20
+        lowBatteryNotificationsEnabled   = (try? c.decodeIfPresent(Bool.self,   forKey: .lowBatteryNotificationsEnabled))   ?? true
+        connectionNotificationsEnabled   = (try? c.decodeIfPresent(Bool.self,   forKey: .connectionNotificationsEnabled))   ?? true
+        hostSwitchNotificationsEnabled   = (try? c.decodeIfPresent(Bool.self,   forKey: .hostSwitchNotificationsEnabled))   ?? true
+        launchAtLogin                    = (try? c.decodeIfPresent(Bool.self,   forKey: .launchAtLogin))                    ?? false
+        autoApplyOnReconnect             = (try? c.decodeIfPresent(Bool.self,   forKey: .autoApplyOnReconnect))             ?? true
+        appProfilesEnabled               = (try? c.decodeIfPresent(Bool.self,   forKey: .appProfilesEnabled))               ?? true
+        appProfiles                      = (try? c.decodeIfPresent([AppProfile].self, forKey: .appProfiles))                ?? []
+        autoUpdateEnabled                = (try? c.decodeIfPresent(Bool.self,   forKey: .autoUpdateEnabled))                ?? true
+        welcomeCompleted                 = (try? c.decodeIfPresent(Bool.self,   forKey: .welcomeCompleted))                 ?? false
+    }
 }
 
 /// Loads and saves Optune persistent state. Single source of truth — `DeviceModel`
@@ -55,8 +90,8 @@ final class SettingsStore {
     static let shared = SettingsStore()
 
     private let storeURL: URL
-    private(set) var app: OptuneAppSettings
-    private(set) var devices: [DeviceSettings]
+    internal var app: OptuneAppSettings
+    internal var devices: [DeviceSettings]
 
     init() {
         let fm = FileManager.default

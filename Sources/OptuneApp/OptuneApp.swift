@@ -10,11 +10,35 @@ struct OptuneApp: App {
             MenuContent()
                 .environmentObject(deviceModel)
                 .frame(width: 380)
+                .onAppear {
+                    WelcomePresenter.shared.showIfNeeded(model: deviceModel)
+                }
         } label: {
             MenuBarLabel()
                 .environmentObject(deviceModel)
         }
         .menuBarExtraStyle(.window)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Welcome to Optune…") {
+                    WelcomePresenter.shared.present(model: deviceModel)
+                }
+                Divider()
+                Button("Check for Updates…") {
+                    Task { await UpdateChecker.shared.checkNow() }
+                }
+            }
+            CommandGroup(after: .importExport) {
+                Button("Export Settings…") {
+                    SettingsExportImport.exportToFile()
+                }
+                .keyboardShortcut("E", modifiers: [.command, .shift])
+                Button("Import Settings…") {
+                    SettingsExportImport.importFromFile()
+                }
+                .keyboardShortcut("I", modifiers: [.command, .shift])
+            }
+        }
 
         Settings {
             SettingsWindow()
