@@ -6,7 +6,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
-BUILD_DIR=".build/$( [ "$CONFIG" = "release" ] && echo release || echo debug )"
+# When swift build runs with multiple --arch flags it produces a fat binary in
+# .build/apple/Products/<Config>/. Otherwise the per-arch dir holds it.
+if [[ -x ".build/apple/Products/${CONFIG^}/OptuneApp" ]]; then
+  BUILD_DIR=".build/apple/Products/${CONFIG^}"
+elif [[ -x ".build/apple/Products/Release/OptuneApp" && "$CONFIG" = "release" ]]; then
+  BUILD_DIR=".build/apple/Products/Release"
+else
+  BUILD_DIR=".build/$( [ "$CONFIG" = "release" ] && echo release || echo debug )"
+fi
 APP_NAME="OptuneApp.app"
 APP_DIR=".build/$APP_NAME"
 
