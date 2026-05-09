@@ -12,12 +12,13 @@ struct WheelPane: View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.xl) {
             PageHeader(
                 "Wheel & speed",
-                subtitle: "Hi-res scroll modes (0x2121) and the pointer-speed multiplier (0x2205)."
+                subtitle: "Hi-res scroll modes (0x2121), pointer-speed multiplier (0x2205), and side thumb wheel (0x2150)."
             )
 
             VStack(alignment: .leading, spacing: OptuneDesign.Spacing.lg) {
                 wheelCard
                 pointerSpeedCard
+                thumbWheelCard
             }
         }
     }
@@ -156,6 +157,90 @@ struct WheelPane: View {
                 }
             } else {
                 infoBlock(unavailableReason, tone: .warning)
+            }
+        }
+        .padding(OptuneDesign.Spacing.xl)
+        .background(
+            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
+                .fill(.regularMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
+                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+    }
+
+    @ViewBuilder
+    private var thumbWheelCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text("Side thumb wheel")
+                        .font(OptuneDesign.Typography.header)
+                    Spacer()
+                    if case .ok = model.telemetry.thumbWheel {
+                        CapabilityPill(text: "0x2150", tone: .accent)
+                    }
+                }
+                Text("MX Master family side wheel. Divert silences native horizontal scroll so macOS won't double-fire; invert flips direction.")
+                    .font(OptuneDesign.Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.bottom, OptuneDesign.Spacing.md)
+
+            switch model.telemetry.thumbWheel {
+            case .ok(let diverted, let inverted):
+                InsetGroup {
+                    InsetRow(
+                        title: "Divert thumb wheel",
+                        subtitle: "Stops the firmware from sending native horizontal scroll. Useful when macOS double-counts the side wheel."
+                    ) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.purple.opacity(0.14))
+                            Image(systemName: "arrow.left.arrow.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.purple)
+                        }
+                        .frame(width: 22, height: 22)
+                    } trailing: {
+                        Toggle("", isOn: Binding(
+                            get: { diverted },
+                            set: { model.setThumbWheelDiverted($0) }
+                        ))
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                    }
+                    GroupDivider()
+                    InsetRow(
+                        title: "Invert direction",
+                        subtitle: "Flip the thumb wheel scroll axis."
+                    ) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.pink.opacity(0.14))
+                            Image(systemName: "arrow.left.arrow.right.circle")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.pink)
+                        }
+                        .frame(width: 22, height: 22)
+                    } trailing: {
+                        Toggle("", isOn: Binding(
+                            get: { inverted },
+                            set: { model.setThumbWheelInverted($0) }
+                        ))
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                    }
+                }
+
+            case .unavailable(let why):
+                infoBlock(why, tone: .neutral)
+            case .unknown:
+                infoBlock("Reading thumb wheel state…", tone: .neutral)
             }
         }
         .padding(OptuneDesign.Spacing.xl)

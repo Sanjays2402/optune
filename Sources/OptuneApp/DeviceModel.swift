@@ -112,6 +112,12 @@ struct DeviceTelemetry: Equatable {
         case ok(mode: UInt8, activeProfile: UInt8, profileCount: Int)
     }
 
+    enum ThumbWheel: Equatable {
+        case unknown
+        case unavailable(String)
+        case ok(diverted: Bool, inverted: Bool)
+    }
+
     /// Sendable, Equatable mirror of `ReprogControlsV4Feature.Control`. Lets us
     /// keep `DeviceTelemetry` Equatable and pass it through `@Published`.
     struct SerializableControl: Equatable, Identifiable, Hashable {
@@ -136,6 +142,7 @@ struct DeviceTelemetry: Equatable {
     var backlight: Backlight = .unknown
     var fnLock: FnLock = .unknown
     var onboard: Onboard = .unknown
+    var thumbWheel: ThumbWheel = .unknown
     var lastUpdated: Date?
 }
 
@@ -342,6 +349,31 @@ final class DeviceModel: ObservableObject {
         }
     }
 
+    /// Toggle ThumbWheel diversion (0x2150). When diverted the firmware stops
+    /// emitting native horizontal scroll and sends HID++ notifications instead
+    /// (we don't bind those yet — diversion alone silences a side-wheel that
+    /// was double-firing or sending unwanted scroll on macOS).
+    func setThumbWheelDiverted(_ diverted: Bool) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            await Self.writeThumbWheel(diverted: diverted, inverted: nil, on: device)
+            self.store.update(for: device) { $0.thumbWheelDiverted = diverted }
+            await self.pollTelemetry()
+        }
+    }
+
+    /// Invert ThumbWheel scroll direction (0x2150).
+    func setThumbWheelInverted(_ inverted: Bool) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let device = self.primaryDevice else { return }
+            await Self.writeThumbWheel(diverted: nil, inverted: inverted, on: device)
+            self.store.update(for: device) { $0.thumbWheelInverted = inverted }
+            await self.pollTelemetry()
+        }
+    }
+
     var recognizedDevices: [LogitechDevice] {
         devices.filter { DeviceRegistry.descriptor(for: $0) != nil }
     }
@@ -388,10 +420,11 @@ final class DeviceModel: ObservableObject {
             async let backlight = Self.readBacklight(transport)
             async let fnLock = Self.readFnLock(transport)
             async let onboard = Self.readOnboard(transport)
+            async let thumb = Self.readThumbWheel(transport)
 
-            let (b, d, s, btn, fw, hs, wh, ps, nick, bl, fnl, ob) = await (
+            let (b, d, s, btn, fw, hs, wh, ps, nick, bl, fnl, ob, tw) = await (
                 battery, dpi, smart, buttons, firmware, hosts, wheel, pointerSpeed, nickname,
-                backlight, fnLock, onboard
+                backlight, fnLock, onboard, thumb
             )
 
             let snapshot = DeviceTelemetry(
@@ -407,6 +440,7 @@ final class DeviceModel: ObservableObject {
                 backlight: bl,
                 fnLock: fnl,
                 onboard: ob,
+                thumbWheel: tw,
                 lastUpdated: Date()
             )
             telemetry = snapshot
@@ -467,6 +501,7 @@ final class DeviceModel: ObservableObject {
                 backlight: .unavailable("Device not in registry"),
                 fnLock: .unavailable("Device not in registry"),
                 onboard: .unavailable("Device not in registry"),
+                thumbWheel: .unavailable("Device not in registry"),
                 lastUpdated: Date()
             )
         } catch HIDPPError.openFailed(let r) {
@@ -484,6 +519,7 @@ final class DeviceModel: ObservableObject {
                 backlight: .unavailable(msg),
                 fnLock: .unavailable(msg),
                 onboard: .unavailable(msg),
+                thumbWheel: .unavailable(msg),
                 lastUpdated: Date()
             )
         } catch {
@@ -501,6 +537,7 @@ final class DeviceModel: ObservableObject {
                 backlight: .unavailable(msg),
                 fnLock: .unavailable(msg),
                 onboard: .unavailable(msg),
+                thumbWheel: .unavailable(msg),
                 lastUpdated: Date()
             )
         }
@@ -727,6 +764,17 @@ final class DeviceModel: ObservableObject {
         }
     }
 
+    private static func readThumbWheel(_ transport: HIDPPTransport) async -> DeviceTelemetry.ThumbWheel {
+        do {
+            guard let status = try await ThumbWheelFeature.snapshot(on: transport) else {
+                return .unavailable("0x2150 not exposed")
+            }
+            return .ok(diverted: status.diverted, inverted: status.inverted)
+        } catch {
+            return .unavailable("\(error)")
+        }
+    }
+
     // MARK: - v0.4 writers
 
     private static func writeWheelRatchet(_ ratchet: Bool, on device: LogitechDevice) async {
@@ -897,6 +945,32 @@ final class DeviceModel: ObservableObject {
             )
         } catch { }
     }
+
+    /// Read current ThumbWheel state, optionally override `diverted` and/or `inverted`,
+    /// then write back. Both nil-args fall through to the current firmware value so a
+    /// single-axis caller doesn't accidentally clobber the other axis.
+    private static func writeThumbWheel(
+        diverted: Bool?,
+        inverted: Bool?,
+        on device: LogitechDevice
+    ) async {
+        guard let transport = try? HIDPPTransport(matching: device) else { return }
+        defer { transport.close() }
+        do {
+            let lookup = try await RootFeature.getFeature(on: transport, featureID: ThumbWheelFeature.id)
+            guard lookup.isPresent else { return }
+            let current = try await ThumbWheelFeature.getStatus(
+                on: transport,
+                featureIndex: lookup.featureIndex
+            )
+            _ = try await ThumbWheelFeature.setStatus(
+                on: transport,
+                featureIndex: lookup.featureIndex,
+                diverted: diverted ?? current.diverted,
+                inverted: inverted ?? current.inverted
+            )
+        } catch { }
+    }
 }
 
 // MARK: - Unavailable-reason helpers (used by DeviceModel.permissionMissing)
@@ -938,6 +1012,12 @@ extension DeviceTelemetry.FnLock {
 }
 
 extension DeviceTelemetry.Onboard {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.ThumbWheel {
     var unavailableReason: String? {
         if case .unavailable(let why) = self { return why } else { return nil }
     }
