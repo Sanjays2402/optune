@@ -65,7 +65,7 @@ struct SettingsWindow: View {
                 .padding(OptuneDesign.Spacing.xl)
             }
         }
-        .frame(minWidth: 720, minHeight: 480)
+        .frame(minWidth: 880, minHeight: 640)
         .navigationTitle("Optune Settings")
     }
 }
@@ -285,8 +285,8 @@ private struct PointerPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.lg) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Pointer & wheel").font(OptuneDesign.Typography.title)
-                Text("Tune sensitivity and SmartShift behaviour for your primary device.")
+                Text("Pointer").font(OptuneDesign.Typography.title)
+                Text("DPI sensitivity and SmartShift behaviour for your primary device.")
                     .font(OptuneDesign.Typography.caption)
                     .foregroundStyle(.secondary)
             }
@@ -361,7 +361,10 @@ private struct DPIControl: View {
                     Text("\(hi)").font(OptuneDesign.Typography.caption).foregroundStyle(.secondary)
                 }
             } else {
-                Text("Reading DPI from device…").foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Reading DPI from device…").foregroundStyle(.secondary)
+                }
             }
         }
         .glassCard()
@@ -449,7 +452,7 @@ private struct ButtonsPane: View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.lg) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Reprogrammable buttons").font(OptuneDesign.Typography.title)
-                Text("Read-only catalog — runtime remap arrives in v0.4 once permissions land.")
+                Text("Read-only catalog — runtime remap arrives in v0.5 once permissions land.")
                     .font(OptuneDesign.Typography.caption)
                     .foregroundStyle(.secondary)
             }
@@ -467,6 +470,13 @@ private struct ButtonsPane: View {
                     Label("No button data", systemImage: "rectangle.grid.2x2")
                 } description: {
                     Text(noDataReason)
+                } actions: {
+                    Button {
+                        model.refreshTelemetryNow()
+                    } label: {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .glassCard(tint: .gray)

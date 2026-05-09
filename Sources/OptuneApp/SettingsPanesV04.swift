@@ -152,6 +152,13 @@ struct HostsPane: View {
                     Label("Hosts unavailable", systemImage: "exclamationmark.triangle")
                 } description: {
                     Text(why)
+                } actions: {
+                    Button {
+                        model.refreshTelemetryNow()
+                    } label: {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .glassCard(tint: .gray)
