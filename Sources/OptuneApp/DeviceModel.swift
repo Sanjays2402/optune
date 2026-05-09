@@ -126,6 +126,19 @@ final class DeviceModel: ObservableObject {
     @Published private(set) var isPolling: Bool = false
     @Published private(set) var deviceNickname: String = ""
 
+    /// True when the most recent telemetry sweep tripped the "Input Monitoring
+    /// not granted" code path. Drives the orange permission banner in Settings.
+    var permissionMissing: Bool {
+        let reasons: [String] = [
+            telemetry.battery.unavailableReason,
+            telemetry.dpi.unavailableReason,
+            telemetry.smartShift.unavailableReason,
+            telemetry.buttons.unavailableReason
+        ].compactMap { $0 }
+        return reasons.contains { $0.localizedCaseInsensitiveContains("input monitoring") }
+            || reasons.contains { $0.localizedCaseInsensitiveContains("no reply") }
+    }
+
     private var refreshTask: Task<Void, Never>?
     private var telemetryTask: Task<Void, Never>?
     private var sleepObserver: SleepObserver?
@@ -672,5 +685,31 @@ final class DeviceModel: ObservableObject {
             guard lookup.isPresent else { return }
             try await ResetFeature.reset(on: transport, featureIndex: lookup.featureIndex)
         } catch { }
+    }
+}
+
+// MARK: - Unavailable-reason helpers (used by DeviceModel.permissionMissing)
+
+extension DeviceTelemetry.Battery {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.DPI {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.SmartShift {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
+    }
+}
+
+extension DeviceTelemetry.Buttons {
+    var unavailableReason: String? {
+        if case .unavailable(let why) = self { return why } else { return nil }
     }
 }
