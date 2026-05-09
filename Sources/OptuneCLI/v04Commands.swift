@@ -551,3 +551,62 @@ struct ExportCommand: AsyncParsableCommand {
         try CLISupport.writeJSON(snapshot)
     }
 }
+
+// MARK: - thumbwheel
+
+struct ThumbWheelCommand: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "thumbwheel",
+        abstract: "Read or toggle the side thumb wheel (HID++ feature 0x2150)."
+    )
+
+    @Option(name: .shortAndLong, help: "Specific PID to query (hex).")
+    var pid: String?
+
+    @Flag(help: "Divert thumb-wheel scroll events to HID++ (silences native horizontal scroll).")
+    var divert: Bool = false
+
+    @Flag(help: "Restore native firmware horizontal scroll (un-divert).")
+    var native: Bool = false
+
+    @Flag(help: "Toggle scroll-direction inversion.")
+    var invert: Bool = false
+
+    @Flag(name: .shortAndLong, help: "Output JSON.")
+    var json: Bool = false
+
+    func run() async throws {
+        let device = try CLISupport.resolveDevice(pid: pid)
+        let transport = try CLISupport.openTransport(for: device)
+        defer { transport.close() }
+
+        let lookup = try await RootFeature.getFeature(on: transport, featureID: ThumbWheelFeature.id)
+        guard lookup.isPresent else { throw CLIError.featureMissing("ThumbWheel (0x2150)") }
+
+        var current = try await ThumbWheelFeature.getStatus(on: transport, featureIndex: lookup.featureIndex)
+
+        if divert || native || invert {
+            let nextDiverted: Bool
+            if divert { nextDiverted = true }
+            else if native { nextDiverted = false }
+            else { nextDiverted = current.diverted }
+            let nextInverted = invert ? !current.inverted : current.inverted
+            current = try await ThumbWheelFeature.setStatus(
+                on: transport,
+                featureIndex: lookup.featureIndex,
+                diverted: nextDiverted,
+                inverted: nextInverted
+            )
+        }
+
+        if json {
+            try CLISupport.writeJSON([
+                "device": device.displayName,
+                "diverted": current.diverted,
+                "inverted": current.inverted
+            ] as [String: Any])
+        } else {
+            print("Thumb wheel — diverted: \(current.diverted ? "yes" : "no"), inverted: \(current.inverted ? "yes" : "no")")
+        }
+    }
+}

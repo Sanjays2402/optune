@@ -17,6 +17,10 @@ struct DeviceSettings: Codable, Equatable {
     var wheelInverted: Bool?
     /// Whether to engage ratchet on connect (only meaningful for HiResWheel-capable devices).
     var wheelRatchet: Bool?
+    /// Whether to divert the side thumb wheel via 0x2150 (silences/captures it on macOS).
+    var thumbWheelDiverted: Bool?
+    /// Whether to invert the side thumb wheel via 0x2150.
+    var thumbWheelInverted: Bool?
     /// User's nickname for this device (read from 0x0007 if none stored).
     var nickname: String?
     /// Last-seen battery percentage; we keep a small ring buffer for the sparkline.
