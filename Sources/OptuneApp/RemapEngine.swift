@@ -274,20 +274,23 @@ final class RemapEngine {
             // System-defined keys live on the NSSystemDefined event subtype 8.
             // The data1 field encodes (keyCode << 16) | (state << 8). We post a
             // press + release pair so apps that listen to either edge respond.
-            dispatchQueue.async {
-                let nx: Int32 = {
-                    switch key {
-                    case 0: return 16   // NX_KEYTYPE_PLAY
-                    case 1: return 19   // NX_KEYTYPE_NEXT
-                    case 2: return 20   // NX_KEYTYPE_PREVIOUS
-                    case 3: return 0    // NX_KEYTYPE_SOUND_UP
-                    case 4: return 1    // NX_KEYTYPE_SOUND_DOWN
-                    case 5: return 7    // NX_KEYTYPE_MUTE
-                    case 6: return 2    // NX_KEYTYPE_BRIGHTNESS_UP
-                    case 7: return 3    // NX_KEYTYPE_BRIGHTNESS_DOWN
-                    default: return 16
-                    }
-                }()
+            //
+            // NSEvent.otherEvent + NSApp posting must run on the MainActor in
+            // strict-concurrency mode, so we hop there explicitly.
+            let nx: Int32 = {
+                switch key {
+                case 0: return 16   // NX_KEYTYPE_PLAY
+                case 1: return 19   // NX_KEYTYPE_NEXT
+                case 2: return 20   // NX_KEYTYPE_PREVIOUS
+                case 3: return 0    // NX_KEYTYPE_SOUND_UP
+                case 4: return 1    // NX_KEYTYPE_SOUND_DOWN
+                case 5: return 7    // NX_KEYTYPE_MUTE
+                case 6: return 2    // NX_KEYTYPE_BRIGHTNESS_UP
+                case 7: return 3    // NX_KEYTYPE_BRIGHTNESS_DOWN
+                default: return 16
+                }
+            }()
+            Task { @MainActor in
                 Self.postMediaKey(nx: nx)
             }
 

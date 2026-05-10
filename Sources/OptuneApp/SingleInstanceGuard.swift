@@ -54,21 +54,26 @@ public enum SingleInstanceGuard {
 
     /// Install a one-shot observer in the owner process. When a duplicate
     /// posts `optune.activate`, we activate ourselves and bring up Settings.
+    /// `NSApp` and `sendAction` are MainActor-isolated under Swift 6 strict
+    /// concurrency — the closure body must hop there explicitly even though
+    /// `queue: .main` already pins the dispatch.
     private static func installOwnerObserver() {
         DistributedNotificationCenter.default().addObserver(
             forName: notificationName,
             object: nil,
             queue: .main
         ) { _ in
-            NSApp.activate(ignoringOtherApps: true)
-            // Open the Settings window if it isn't already up. SwiftUI's
-            // `Settings { }` scene answers to the standard ⌘, command.
-            // We invoke it via the responder chain instead of a private API.
-            if let action = Selector("showSettingsWindow:") as Selector?,
-               NSApp.responds(to: action) {
-                NSApp.sendAction(action, to: nil, from: nil)
-            } else {
-                NSApp.sendAction(Selector(("orderFrontStandardAboutPanel:")), to: nil, from: nil)
+            Task { @MainActor in
+                NSApp.activate(ignoringOtherApps: true)
+                // Open the Settings window if it isn't already up. SwiftUI's
+                // `Settings { }` scene answers to the standard ⌘, command.
+                // We invoke it via the responder chain instead of a private API.
+                let showSettings = Selector(("showSettingsWindow:"))
+                if NSApp.responds(to: showSettings) {
+                    NSApp.sendAction(showSettings, to: nil, from: nil)
+                } else {
+                    NSApp.sendAction(Selector(("orderFrontStandardAboutPanel:")), to: nil, from: nil)
+                }
             }
         }
     }
