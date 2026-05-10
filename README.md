@@ -4,7 +4,9 @@ A modern, open-source Logitech Options+ replacement — native macOS, written in
 
 > **Status: v0.6.0 — Homebrew tap live, Accessibility (TCC) gate fixed, sidebar Settings, eight HID++ features, per-app profiles, custom button remap, onboard profiles, in-app updates.** Latest release: [v0.6.0](https://github.com/Sanjays2402/optune/releases/latest) (universal DMG, ad-hoc signed) · `brew tap sanjays2402/optune && brew install --cask optune`.
 
-![Optune showcase](docs/screenshots/v04-hero.png)
+![Optune showcase](docs/screenshots/v0.3-menu.png)
+
+> *Hero screenshot is from v0.3 — best-data-populated shot we have. v0.6 capture pending.*
 
 Inspired by [Solaar](https://github.com/pwr-Solaar/Solaar) and [logitune](https://github.com/mmaher88/logitune). Optune is a clean-room Swift implementation for macOS — it doesn't share code with either, but learns from their HID++ work.
 
