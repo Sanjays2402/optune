@@ -88,39 +88,13 @@ final class HIDPPTests: XCTestCase {
     }
 }
 
-final class DeviceRegistryTests: XCTestCase {
-
-    func test_mxMaster3S_descriptorIsRegistered() {
-        let descriptor = DeviceRegistry.mxMaster3S
-        XCTAssertEqual(descriptor.codename, "mx-master-3s")
-        XCTAssertTrue(descriptor.pids.contains(0xB034))
-    }
-
-    func test_descriptorLookup_returnsMXMaster3S_forKnownPIDs() {
-        let device = LogitechDevice(
-            productID: 0xB034,
-            productName: "MX Master 3S",
-            manufacturer: "Logitech",
-            usagePage: HIDPP.usagePageVendorLong,
-            usage: 0x0001
-        )
-        XCTAssertEqual(DeviceRegistry.descriptor(for: device)?.modelName, "MX Master 3S")
-    }
-
-    func test_descriptorLookup_returnsNil_forUnknownPIDs() {
-        let device = LogitechDevice(
-            productID: 0xDEAD,
-            productName: "",
-            manufacturer: "Logitech",
-            usagePage: HIDPP.usagePageVendorLong,
-            usage: 0x0001
-        )
-        XCTAssertNil(DeviceRegistry.descriptor(for: device))
-    }
-}
+// DeviceRegistryTests moved to its own file (Tests/OptuneCoreTests/DeviceRegistryTests.swift)
+// in v0.6.1 cleanup, to keep registry-specific assertions next to the new
+// JSON-loading guards (test_devicesJSON_loadsFromBundle, test_directPIDs_areUniqueAcrossDevices,
+// test_dpiBounds_areSane). Two `DeviceRegistryTests` classes in one module
+// caused "invalid redeclaration" — only the dedicated file should define it now.
 
 final class HIDEnumeratorTests: XCTestCase {
-
     func test_enumeration_isSafe_andReturnsArray() {
         // We can't assert hardware presence, only that the call is safe and returns a sortable array.
         let devices = HIDEnumerator.logitechDevices()
