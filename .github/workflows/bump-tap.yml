@@ -1,0 +1,87 @@
+name: Bump Homebrew tap
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to bump to (e.g. v0.6.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bump-tap:
+    name: Bump Casks/optune.rb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: ver
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REL_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          TAG="${INPUT_TAG:-$REL_TAG}"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::no tag resolved" >&2; exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch DMG SHA256 from release assets
+        id: sha
+        run: |
+          set -euo pipefail
+          TAG='${{ steps.ver.outputs.tag }}'
+          VER='${{ steps.ver.outputs.version }}'
+          URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Optune-${VER}.dmg.sha256"
+          # Retry — release asset may take a few seconds to be queryable.
+          for i in 1 2 3 4 5; do
+            if curl -fsSL "$URL" -o sha.txt; then break; fi
+            sleep 5
+          done
+          SHA="$(awk '{print $1}' sha.txt)"
+          if [[ -z "$SHA" ]]; then
+            echo "::error::could not resolve sha256 from $URL" >&2; exit 1
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Check out homebrew-optune tap
+        uses: actions/checkout@v4
+        with:
+          repository: Sanjays2402/homebrew-optune
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update Casks/optune.rb
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+          SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+          cd tap
+          # version "..."
+          sed -E -i "s/^(  version )\".*\"/\1\"${VER}\"/" Casks/optune.rb
+          # sha256 "..."
+          sed -E -i "s/^(  sha256 )\".*\"/\1\"${SHA}\"/" Casks/optune.rb
+          # Show what changed.
+          git --no-pager diff Casks/optune.rb || true
+
+      - name: Commit + push
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd tap
+          if git diff --quiet; then
+            echo "No changes — already at v$VER"; exit 0
+          fi
+          git config user.name 'optune-release-bot'
+          git config user.email '51058514+Sanjays2402@users.noreply.github.com'
+          git add Casks/optune.rb
+          git commit -m "chore(cask): bump to v${VER}"
+          git push
