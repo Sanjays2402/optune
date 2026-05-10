@@ -3,7 +3,63 @@
 All notable changes to Optune are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning is [SemVer](https://semver.org/).
 
-## [Unreleased] — v0.4 wide-feature surface
+## [Unreleased]
+
+Nothing yet — see [open issues](https://github.com/Sanjays2402/optune/issues) for what's next.
+
+## [0.6.0] — 2026-05-09
+
+### Added — App
+- **Accessibility (`AXIsProcessTrusted`) gate** in `RemapEngine` — `CGEvent.post` is now blocked
+  on TCC denial instead of silently no-oping. The first denied click triggers the system prompt.
+- **`AccessibilityChecker`** — `@MainActor ObservableObject` singleton that polls trust state
+  every 2 s, exposes `isTrusted` for live UI binding, and stops polling once granted.
+- **Welcome screen** rewritten — now lists **two** required permissions (Input Monitoring +
+  Accessibility) with live status, Grant buttons, and a callout explaining that updating the app
+  binary invalidates the existing TCC grant (root cause of "I gave permission but remap broke").
+- **ButtonsPane TCC banner** — orange recovery card surfaces when remaps are bound but
+  Accessibility is missing; one-tap "Grant" + "Open Settings" + recovery instructions inline.
+- `LSUIElement` already documented in `Scripts/bundle-app.sh` since v0.1 — confirmed.
+
+### Added — Distribution
+- **Homebrew tap**: `brew tap sanjays2402/optune && brew install --cask optune` (live).
+- `.github/workflows/bump-tap.yml` — release-triggered cask SHA bump (gated on
+  `HOMEBREW_TAP_TOKEN` PAT secret; inert until set).
+- README install section with tap-first instructions.
+
+### Changed
+- `CFBundleVersion` 0.5.0 → 0.6.0 in bundle script.
+
+### Fixed
+- TCC trap on app updates — re-installing `/Applications/Optune.app` invalidates the
+  existing Accessibility grant; banner now tells the user to toggle off/on or
+  remove + re-add Optune in System Settings.
+
+### Known limitations
+- Ad-hoc signed only — Apple Developer Program ($99/yr) + notarisation pending.
+- Auto-bump workflow inert until `HOMEBREW_TAP_TOKEN` PAT is set on the repo.
+
+## [0.5.0] — 2026-05-09
+
+### Added — HID++
+- Feature `0x1B04` **ReprogrammableControlsV4** — `getControlIdReporting` / `setControlIdReporting`
+  with full divert flag handling. Decodes `0x00` button-pressed events into `(cid, downBitmap)`.
+- `HIDPPTransport.addEventSubscriber(_:) -> UInt64` / `removeEventSubscriber(_ token: UInt64)` —
+  one-handler-many-subscribers fan-out keyed by token, including `swID == 0` event delivery.
+
+### Added — App
+- **Custom button remap** — bind any divertable Logitech button (G3 thumb, G4/G5 side, gestures)
+  to keystroke, system swipe, screenshot, mute, brightness, app launch, or shortcut.
+- `RemapEngine` — diverted-event listener that fans subscribed CIDs into `CGEvent` synthesis,
+  with per-CID debounce, modifier handling, and TCC trust check.
+- **ButtonsPane** in Settings — full bind/unbind UI with live event log + capture-key picker.
+- Hot-plug hydration — bindings persist in `SettingsStore.remapBindings`; `RemapEngine` is
+  reconciled on every `appearing` / `disappearing` device delta.
+
+### Known limitations
+- Onboard-profile DPI/button writes still pending (read-only).
+
+## [0.4.0] — 2026-05-09
 
 ### Added — HID++ features
 - Feature `0x0003` **DeviceFwVersion** — entity count, per-entity firmware string with prefix/version/build.
@@ -52,7 +108,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 - 0x8100 OnboardProfiles is **read-only** in 0.4 (slot listing only). Profile editing
   lands in 0.5.
 
-## [Unreleased] — v0.2 HID++ transport
+## [0.2.0] — 2026-05-09 — HID++ transport
 
 ### Added
 - `HIDPPTransport` — async HID++ 2.0 transport over IOKit. 7-byte short and 20-byte

@@ -2,9 +2,9 @@
 
 A modern, open-source Logitech Options+ replacement — native macOS, written in Swift 6.
 
-> **Status: v0.5.0 — five sidebar panes, eight HID++ features, per-app profiles, keyboard backlight, onboard profiles, settings export/import, in-app updates.** Latest release: [v0.5.0](https://github.com/Sanjays2402/optune/releases/latest) (universal DMG, ad-hoc signed).
+> **Status: v0.6.0 — Homebrew tap live, Accessibility (TCC) gate fixed, sidebar Settings, eight HID++ features, per-app profiles, custom button remap, onboard profiles, in-app updates.** Latest release: [v0.6.0](https://github.com/Sanjays2402/optune/releases/latest) (universal DMG, ad-hoc signed) · `brew tap sanjays2402/optune && brew install --cask optune`.
 
-![Optune showcase](docs/screenshots/v0.3-hero.png)
+![Optune showcase](docs/screenshots/v04-hero.png)
 
 Inspired by [Solaar](https://github.com/pwr-Solaar/Solaar) and [logitune](https://github.com/mmaher88/logitune). Optune is a clean-room Swift implementation for macOS — it doesn't share code with either, but learns from their HID++ work.
 
@@ -13,7 +13,7 @@ Inspired by [Solaar](https://github.com/pwr-Solaar/Solaar) and [logitune](https:
 Logitech Options+ is closed-source, ad-laden, runs background "Logi AI" services, and ships a fresh installer every time you blink. If you just want to remap your MX Master 3S buttons and see the battery level, you shouldn't need an account.
 
 Optune is:
-- 100% native macOS — Swift 6 + SwiftUI, Liquid Glass on macOS 26
+- 100% native macOS — Swift 6 + SwiftUI, **Liquid Glass on macOS 26** (looks great on 15 too — same compositions, just slightly less translucent)
 - A single signed `OptuneApp.app` plus an `optune` CLI — ~3.8 MB binary, zero dependencies
 - IOKit HIDManager for device discovery — no kernel extensions, no daemons, no login items
 - GPL-3.0, no telemetry, no account, no ads
@@ -41,7 +41,7 @@ Optune is:
 
 ### Verified devices
 
-MX Master 3S (BLE + USB), MX Master 3, MX Master 4, MX Master 2S, MX Master, MX Anywhere 3S/3/2S, MX Vertical. MX Keys S / MX Keys keyboard families pick up the Backlight + Fn-lock pane. All entries in `Sources/OptuneCore/DeviceRegistry.swift` carry per-family DPI bounds and capability flags so the UI hides features the firmware doesn't expose.
+MX Master 3S (BLE + USB), MX Master 3, MX Master 4, MX Master 2S, MX Master, MX Anywhere 3S/3/2S, MX Vertical. MX Keys S / MX Keys keyboard families pick up the Backlight + Fn-lock pane. All entries live in [`Sources/OptuneCore/Resources/devices.json`](Sources/OptuneCore/Resources/devices.json) — adding a device is a one-file PR (no Swift changes), see [docs/adding-a-device.md](docs/adding-a-device.md). Per-family DPI bounds and capability flags let the UI hide features the firmware doesn't expose.
 
 ## Roadmap
 
