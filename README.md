@@ -18,7 +18,7 @@ Optune is:
 - IOKit HIDManager for device discovery — no kernel extensions, no daemons, no login items
 - GPL-3.0, no telemetry, no account, no ads
 
-## What works in v0.5.0
+## What works in v0.6.0
 
 **HID++ features (read + write)**
 - ✅ **UnifiedBattery** (`0x1004`) — live percent, charging state, external power, sparkline history
@@ -48,8 +48,9 @@ MX Master 3S (BLE + USB), MX Master 3, MX Master 4, MX Master 2S, MX Master, MX 
 | Milestone | Scope |
 |-----------|-------|
 | **v0.5** ✅ | Per-app profiles, keyboard backlight + Fn-lock, onboard mode, settings export/import, welcome flow, in-app updates |
-| **v0.6** | SmoothScroll (`0x2121`), gesture button virtual events, onboard slot-content writes |
-| **v1.0** | Developer-ID signed + notarised, Homebrew cask (`brew install --cask optune`), localized strings |
+| **v0.6** ✅ | Homebrew tap (`sanjays2402/optune`), TCC accessibility gate fix, sidebar Settings, eight HID++ features, custom button remap, onboard profiles |
+| **v0.7** | SmoothScroll (`0x2121`), 4-way swipe gestures (CGEvent virtual events), onboard slot-content writes |
+| **v1.0** | Developer-ID signed + notarised, Homebrew cask in homebrew-cask, localized strings |
 
 ## Install
 

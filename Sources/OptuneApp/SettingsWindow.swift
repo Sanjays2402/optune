@@ -301,12 +301,16 @@ private struct DevicesPane: View {
             } else {
                 VStack(spacing: OptuneDesign.Spacing.lg) {
                     ForEach(model.recognizedDevices) { device in
-                        DeviceDetailCard(
-                            device: device,
-                            descriptor: DeviceRegistry.descriptor(for: device)!,
-                            telemetry: model.telemetry,
-                            isPrimary: device.id == model.primaryDevice?.id
-                        )
+                        if let descriptor = DeviceRegistry.descriptor(for: device) {
+                            DeviceDetailCard(
+                                device: device,
+                                descriptor: descriptor,
+                                telemetry: model.telemetry,
+                                isPrimary: device.id == model.primaryDevice?.id
+                            )
+                        } else {
+                            UnknownDeviceCard(device: device)
+                        }
                     }
                 }
             }
@@ -330,6 +334,36 @@ private struct DevicesPane: View {
         }
         .frame(maxWidth: .infinity)
         .padding(OptuneDesign.Spacing.xxl)
+        .glassCard(tint: .gray)
+    }
+}
+
+/// Fallback card for a Logitech device that doesn't appear in `devices.json`.
+/// Shown only as a defensive guard against `recognizedDevices` drift; the
+/// canonical filter still excludes unknown devices.
+private struct UnknownDeviceCard: View {
+    let device: LogitechDevice
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OptuneDesign.Spacing.sm) {
+            HStack(spacing: OptuneDesign.Spacing.md) {
+                Image(systemName: "questionmark.diamond")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Unknown device")
+                        .font(.headline)
+                    Text("PID 0x\(String(format: "%04X", device.productID)) · \(device.transport ?? "unknown")")
+                        .font(.caption.monospaced())
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            Text("This Logitech device isn't in `devices.json` yet. Open an issue or send a PR adding the entry — see [docs/adding-a-device.md](https://github.com/Sanjays2402/optune/blob/main/docs/adding-a-device.md).")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(OptuneDesign.Spacing.lg)
         .glassCard(tint: .gray)
     }
 }
