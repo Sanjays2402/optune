@@ -1,6 +1,7 @@
 import Foundation
 import CoreGraphics
 import AppKit
+import ApplicationServices
 import OptuneCore
 
 /// What action to fire when a diverted CID is pressed.
@@ -139,6 +140,27 @@ final class RemapEngine {
     }
 
     private func fire(action: RemapAction) {
+        // Gate every CGEvent action on Accessibility trust. Without it the
+        // call is a silent no-op and the user is left wondering why nothing
+        // happened. We don't block — we still attempt the post and the OS
+        // will drop it — but we flip a published flag so the UI can surface
+        // a banner. (`AXIsProcessTrusted()` is a fast XPC ping.)
+        let needsAX: Bool = {
+            switch action {
+            case .keystroke, .systemSwipe: return true
+            default: return false
+            }
+        }()
+        if needsAX, !AXIsProcessTrusted() {
+            // Bump the checker so any open settings/welcome surfaces refresh,
+            // and pop the system prompt (only fires once per process lifetime).
+            Task { @MainActor in
+                AccessibilityChecker.shared.refresh()
+                AccessibilityChecker.shared.requestPrompt()
+            }
+            return
+        }
+
         switch action {
         case .none:
             return

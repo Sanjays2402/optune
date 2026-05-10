@@ -7,6 +7,7 @@ import OptuneUI
 /// Sets `welcomeCompleted = true` on finish so it never reappears.
 struct WelcomeWindow: View {
     @EnvironmentObject private var model: DeviceModel
+    @ObservedObject private var accessibility = AccessibilityChecker.shared
     @State private var page: Int = 0
     let onClose: () -> Void
 
@@ -71,8 +72,8 @@ struct WelcomeWindow: View {
                 }
                 .frame(width: 48, height: 48)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("One permission to grant").font(.system(size: 15, weight: .semibold))
-                    Text("Required to talk to your mice and keyboards.")
+                    Text("Two permissions to grant").font(.system(size: 15, weight: .semibold))
+                    Text("Required for full functionality. Without them, button remap silently no-ops.")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -82,7 +83,7 @@ struct WelcomeWindow: View {
             InsetGroup {
                 InsetRow(
                     title: "Input Monitoring",
-                    subtitle: "Lets Optune send HID++ commands to read battery and apply settings."
+                    subtitle: "Talk to your mice/keyboards over HID++ — battery, DPI, gestures."
                 ) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -93,7 +94,7 @@ struct WelcomeWindow: View {
                     }
                     .frame(width: 22, height: 22)
                 } trailing: {
-                    Button("Open Settings") {
+                    Button("Open") {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
                             NSWorkspace.shared.open(url)
                         }
@@ -101,9 +102,35 @@ struct WelcomeWindow: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                 }
+
+                GroupDivider()
+
+                InsetRow(
+                    title: "Accessibility",
+                    subtitle: "Synthesize keystrokes / gestures for custom button remaps. macOS silently drops events without it."
+                ) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(accessibility.isTrusted ? Color.green.opacity(0.14) : Color.orange.opacity(0.14))
+                        Image(systemName: accessibility.isTrusted ? "checkmark" : "hand.tap.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(accessibility.isTrusted ? .green : .orange)
+                    }
+                    .frame(width: 22, height: 22)
+                } trailing: {
+                    if accessibility.isTrusted {
+                        Text("Granted")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button("Grant") { accessibility.requestPrompt() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                }
             }
 
-            Text("Optune does not require accessibility, screen recording, or any other privileged scope. We never connect to the network except to look for new releases on github.com.")
+            Text("Tip: if button remap stops working after an update, remove **Optune** from System Settings → Privacy & Security → Accessibility and add it back. macOS invalidates Accessibility grants on every code-signature change.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)

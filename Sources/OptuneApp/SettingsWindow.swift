@@ -779,6 +779,7 @@ private struct SmartShiftControl: View {
 
 private struct ButtonsPane: View {
     @EnvironmentObject private var model: DeviceModel
+    @ObservedObject private var accessibility = AccessibilityChecker.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.xl) {
@@ -786,6 +787,16 @@ private struct ButtonsPane: View {
                 "Buttons",
                 subtitle: "Reprogrammable controls (HID++ 0x1B04). Pick a host action per button — the firmware diverts events to Optune over HID++ and we synthesize the action with CGEvent."
             )
+
+            // Accessibility nag — only when remap actions exist and the trust
+            // grant is missing. macOS silently drops every CGEvent.post() the
+            // process tries to make until this is granted, so the engine
+            // appears to do nothing. Without this banner the user has no
+            // signal — the toggles in the menu still flip, the binding
+            // persists, but the button literally does nothing when pressed.
+            if !accessibility.isTrusted && hasRemaps {
+                accessibilityBanner
+            }
 
             if case .ok(let controls) = model.telemetry.buttons {
                 InsetGroup {
@@ -798,6 +809,56 @@ private struct ButtonsPane: View {
                 emptyState
             }
         }
+        .onAppear { accessibility.refresh() }
+    }
+
+    private var hasRemaps: Bool {
+        model.remapBindings.values.contains { $0 != .none }
+    }
+
+    private var accessibilityBanner: some View {
+        HStack(alignment: .top, spacing: OptuneDesign.Spacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.orange.opacity(0.18))
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.orange)
+            }
+            .frame(width: 32, height: 32)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Accessibility permission needed")
+                    .font(OptuneDesign.Typography.body.weight(.semibold))
+                Text("Optune needs Accessibility to synthesize keystrokes and gestures. Without it your remap toggles save but pressing the button does nothing — macOS silently drops the events.")
+                    .font(OptuneDesign.Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("If Optune is already in the list but it still doesn't fire, remove (–) and re-add (+) it. macOS invalidates the grant whenever the app is updated.")
+                    .font(OptuneDesign.Typography.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Button("Grant Accessibility") { accessibility.requestPrompt() }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    Button("Open Settings") { accessibility.openSettingsPane() }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+                .padding(.top, 4)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(OptuneDesign.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.orange.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.orange.opacity(0.30), lineWidth: 0.5)
+        )
     }
 
     private var emptyState: some View {
