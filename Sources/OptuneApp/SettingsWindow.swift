@@ -935,24 +935,20 @@ private struct ButtonRow: View {
     private var remapMenu: some View {
         Menu {
             Button("Disabled") { model.setRemap(cid: control.cid, action: .none) }
-            Section("System") {
-                Button("Mission Control") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 0)) }
-                Button("Application Windows") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 1)) }
-                Button("Show Desktop") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 2)) }
-                Button("Launchpad") { model.setRemap(cid: control.cid, action: .systemSwipe(slot: 3)) }
-            }
-            Section("Keystroke") {
-                // ⌘C / ⌘V / ⌘Z presets — most-asked button-remap recipes.
-                Button("⌘C — Copy") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 8, modifiers: CGEventFlags.maskCommand.rawValue)) }
-                Button("⌘V — Paste") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 9, modifiers: CGEventFlags.maskCommand.rawValue)) }
-                Button("⌘Z — Undo")  { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 6, modifiers: CGEventFlags.maskCommand.rawValue)) }
-                Button("⌘⇧Z — Redo") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 6, modifiers: CGEventFlags.maskCommand.rawValue | CGEventFlags.maskShift.rawValue)) }
-                Button("⌘Tab — App switch") { model.setRemap(cid: control.cid, action: .keystroke(keyCode: 48, modifiers: CGEventFlags.maskCommand.rawValue)) }
-            }
-            Section("App") {
-                Button("Safari")  { model.setRemap(cid: control.cid, action: .openApp(bundleID: "com.apple.Safari")) }
-                Button("Terminal") { model.setRemap(cid: control.cid, action: .openApp(bundleID: "com.apple.Terminal")) }
-                Button("Notes")   { model.setRemap(cid: control.cid, action: .openApp(bundleID: "com.apple.Notes")) }
+            // Catalog-driven sections — replaces the old hardcoded list of
+            // 5 keystroke presets / 4 swipes / 3 apps. Each category becomes
+            // a labeled `Section`, each entry becomes a `Button`. Mirrors
+            // Mouser's categorized action picker pattern.
+            ForEach(ActionCatalog.shared.groupedByCategory, id: \.0) { (category, items) in
+                Section(category.rawValue) {
+                    ForEach(items) { entry in
+                        Button {
+                            model.setRemap(cid: control.cid, action: entry.action)
+                        } label: {
+                            Label(entry.label, systemImage: entry.symbol)
+                        }
+                    }
+                }
             }
         } label: {
             HStack(spacing: 4) {
