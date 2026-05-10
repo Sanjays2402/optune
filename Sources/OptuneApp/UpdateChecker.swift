@@ -76,18 +76,10 @@ final class UpdateChecker: ObservableObject {
 
     // MARK: - Version compare
 
-    /// Loose semver compare. Returns true iff `a > b`. Treats non-numeric segments as 0.
+    /// Returns true iff `a > b`. Delegates to `OptuneCore.SemverCompare`,
+    /// which strips pre-release/build suffixes and compares numeric segments.
     private func isVersion(_ a: String, newerThan b: String) -> Bool {
-        let av = a.split(separator: ".").map { Int($0) ?? 0 }
-        let bv = b.split(separator: ".").map { Int($0) ?? 0 }
-        let n = max(av.count, bv.count)
-        for i in 0..<n {
-            let lhs = i < av.count ? av[i] : 0
-            let rhs = i < bv.count ? bv[i] : 0
-            if lhs > rhs { return true }
-            if lhs < rhs { return false }
-        }
-        return false
+        SemverCompare.isVersion(a, newerThan: b)
     }
 
     private struct Release: Decodable {

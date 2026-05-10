@@ -40,8 +40,8 @@ jobs:
 
       - name: Bundle .app
         run: |
-          chmod +x scripts/bundle-app.sh
-          bash scripts/bundle-app.sh release
+          chmod +x Scripts/bundle-app.sh
+          bash Scripts/bundle-app.sh release
 
       - name: Stamp version in Info.plist
         run: |

@@ -72,7 +72,7 @@ public enum SingleInstanceGuard {
                 if NSApp.responds(to: showSettings) {
                     NSApp.sendAction(showSettings, to: nil, from: nil)
                 } else {
-                    NSApp.sendAction(Selector(("orderFrontStandardAboutPanel:")), to: nil, from: nil)
+                    NSApp.sendAction(#selector(NSApplication.orderFrontStandardAboutPanel(_:)), to: nil, from: nil)
                 }
             }
         }

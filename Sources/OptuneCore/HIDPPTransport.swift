@@ -364,6 +364,11 @@ public final class HIDPPTransport: @unchecked Sendable {
                 if s == serial { return d }
             }
         }
+        // TODO(multi-device): if two MX-class devices share a featureset and
+        // neither matches by serial, the first IOHIDDevice returned by IOKit
+        // wins non-deterministically. Acceptable today (same featureset =>
+        // same behavior), but should fall back to a deterministic key
+        // (locationID, BSD path) if a real conflict ever shows up.
         return raw.first
     }
 }
