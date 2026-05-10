@@ -180,6 +180,7 @@ final class DeviceModel: ObservableObject {
         refresh()
         OptuneNotifications.shared.requestAuthorizationIfNeeded()
         appProfileManager.deviceModel = self
+        installRemapDispatcher()
         sleepObserver = SleepObserver { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refresh()
@@ -199,6 +200,49 @@ final class DeviceModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: 60_000_000_000)
             }
         }
+    }
+
+    /// Wire the global `RemapActionDispatcher` so the lower-level
+    /// `RemapEngine` can fire `cycleDPI`, `toggleSmartShift`, and
+    /// `toggleScrollMode` without holding a reference to us.
+    /// Each closure captures `self` weakly so the dispatcher (singleton)
+    /// doesn't keep us alive past app exit.
+    private func installRemapDispatcher() {
+        let d = RemapActionDispatcher()
+        d.onCycleDPI = { [weak self] in self?.cycleDPIPreset() }
+        d.onToggleSmartShift = { [weak self] in self?.toggleSmartShiftFromRemap() }
+        d.onToggleScrollMode = { [weak self] in self?.toggleScrollModeFromRemap() }
+        RemapActionDispatcher.shared = d
+    }
+
+    /// Cycle the DPI through the 3 standard presets — mirrors Mouser's
+    /// `cycle_dpi` action which rotates between user-saved DPI buckets.
+    /// We ladder through low/mid/high based on the device's reported range
+    /// rather than hardcoding 800/1600/3200 so MX Anywhere (max 4000) and
+    /// MX Master 3S (max 8000) both feel sensible.
+    private func cycleDPIPreset() {
+        guard case let .ok(current, minDPI, maxDPI, step, _) = telemetry.dpi else { return }
+        let stepSize = max(step ?? 50, 50)
+        let mid = (minDPI + maxDPI) / 2
+        // Snap each preset to a multiple of `stepSize` so the firmware
+        // accepts the write — many devices reject non-stepped DPIs.
+        func snap(_ v: Int) -> Int { (v / stepSize) * stepSize }
+        let presets = [snap(max(minDPI, 800)), snap(mid), snap(min(maxDPI, 3200))].sorted()
+        // Find the first preset strictly greater than current, or wrap to first.
+        let next = presets.first { $0 > current } ?? presets.first ?? current
+        applyDPI(next)
+    }
+
+    /// Flip SmartShift on/off — keeps current threshold.
+    private func toggleSmartShiftFromRemap() {
+        guard case let .ok(enabled, threshold, _) = telemetry.smartShift else { return }
+        setSmartShiftEnabled(!enabled, threshold: threshold)
+    }
+
+    /// Flip wheel ratchet/free-spin without touching invert.
+    private func toggleScrollModeFromRemap() {
+        guard case let .ok(_, ratchet, _) = telemetry.wheel else { return }
+        setWheelRatchet(!ratchet)
     }
 
     deinit {

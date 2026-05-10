@@ -3,7 +3,17 @@ import OptuneCore
 
 @main
 struct OptuneApp: App {
-    @StateObject private var deviceModel = DeviceModel()
+    @StateObject private var deviceModel: DeviceModel
+
+    init() {
+        // Single-instance guard — if another Optune is running, ask it to
+        // focus and exit silently. Mouser-style behavior on macOS without
+        // a Unix socket; uses the distributed notification bus.
+        if !SingleInstanceGuard.acquireOrTrigger() {
+            exit(0)
+        }
+        _deviceModel = StateObject(wrappedValue: DeviceModel())
+    }
 
     var body: some Scene {
         MenuBarExtra {

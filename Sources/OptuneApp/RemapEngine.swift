@@ -18,11 +18,31 @@ public enum RemapAction: Codable, Equatable, Sendable, Hashable {
     case openApp(bundleID: String)
     /// Run a shell command (string is passed to /bin/zsh -lc).
     case runShell(String)
+    /// Synthesize a mouse button click. 0=left, 1=right, 2=middle, 3=back, 4=forward.
+    /// Inspired by Mouser's `mouse_*_click` actions — useful when you want the
+    /// gesture button to act as a third mouse button rather than a keystroke.
+    case mouseClick(button: Int)
+    /// Inject a system-level media key (NSSystemDefined). 0=play/pause,
+    /// 1=next, 2=prev, 3=volumeUp, 4=volumeDown, 5=mute, 6=brightUp, 7=brightDown.
+    /// `keystroke` would only work if the user happens to know the matching F-key —
+    /// this hits the same code path the Apple keyboard uses.
+    case mediaKey(key: Int)
+    /// Cycle through the user's DPI presets stored in settings.
+    case cycleDPI
+    /// Toggle SmartShift (ratchet ↔ free-spin sensitivity).
+    case toggleSmartShift
+    /// Toggle the wheel between physical ratchet and free-spin.
+    case toggleScrollMode
 
     public var displayName: String {
         switch self {
         case .none: return "Disabled"
         case .keystroke(let kc, let mods):
+            // Use the catalog when available — falls back to raw hex for
+            // user-defined custom shortcuts.
+            if let label = ActionCatalog.shared.lookup(keyCode: kc, modifiers: mods)?.label {
+                return label
+            }
             let modName = modifierName(mods)
             return modName.isEmpty ? "Key 0x\(String(kc, radix: 16))" : "\(modName) + 0x\(String(kc, radix: 16))"
         case .systemSwipe(let s):
@@ -35,6 +55,30 @@ public enum RemapAction: Codable, Equatable, Sendable, Hashable {
             }
         case .openApp(let id): return "Open \(id)"
         case .runShell(let cmd): return "Shell: \(cmd.prefix(32))…"
+        case .mouseClick(let b):
+            switch b {
+            case 0: return "Left Click"
+            case 1: return "Right Click"
+            case 2: return "Middle Click"
+            case 3: return "Back (Mouse 4)"
+            case 4: return "Forward (Mouse 5)"
+            default: return "Mouse \(b)"
+            }
+        case .mediaKey(let k):
+            switch k {
+            case 0: return "Play / Pause"
+            case 1: return "Next Track"
+            case 2: return "Previous Track"
+            case 3: return "Volume Up"
+            case 4: return "Volume Down"
+            case 5: return "Mute"
+            case 6: return "Brightness Up"
+            case 7: return "Brightness Down"
+            default: return "Media \(k)"
+            }
+        case .cycleDPI: return "Cycle DPI Presets"
+        case .toggleSmartShift: return "Toggle SmartShift"
+        case .toggleScrollMode: return "Switch Scroll Mode"
         }
     }
 
@@ -147,7 +191,7 @@ final class RemapEngine {
         // a banner. (`AXIsProcessTrusted()` is a fast XPC ping.)
         let needsAX: Bool = {
             switch action {
-            case .keystroke, .systemSwipe: return true
+            case .keystroke, .systemSwipe, .mouseClick, .mediaKey: return true
             default: return false
             }
         }()
@@ -202,6 +246,89 @@ final class RemapEngine {
                 p.arguments = ["-lc", cmd]
                 try? p.run()
             }
+
+        case .mouseClick(let button):
+            // Synthesize a click at the current cursor position. Mouser's
+            // Windows path uses MOUSEEVENTF_*; on macOS we go through
+            // CGEvent.mouseEvent + the matching button index.
+            dispatchQueue.async {
+                let pt = CGEvent(source: nil)?.location ?? .zero
+                let mapping: (downType: CGEventType, upType: CGEventType, btn: CGMouseButton) = {
+                    switch button {
+                    case 0: return (.leftMouseDown, .leftMouseUp, .left)
+                    case 1: return (.rightMouseDown, .rightMouseUp, .right)
+                    case 2: return (.otherMouseDown, .otherMouseUp, .center)
+                    case 3: return (.otherMouseDown, .otherMouseUp, CGMouseButton(rawValue: 3) ?? .center)
+                    case 4: return (.otherMouseDown, .otherMouseUp, CGMouseButton(rawValue: 4) ?? .center)
+                    default: return (.otherMouseDown, .otherMouseUp, .center)
+                    }
+                }()
+                let src = CGEventSource(stateID: .combinedSessionState)
+                let down = CGEvent(mouseEventSource: src, mouseType: mapping.downType, mouseCursorPosition: pt, mouseButton: mapping.btn)
+                let up   = CGEvent(mouseEventSource: src, mouseType: mapping.upType,   mouseCursorPosition: pt, mouseButton: mapping.btn)
+                down?.post(tap: .cgSessionEventTap)
+                up?.post(tap: .cgSessionEventTap)
+            }
+
+        case .mediaKey(let key):
+            // System-defined keys live on the NSSystemDefined event subtype 8.
+            // The data1 field encodes (keyCode << 16) | (state << 8). We post a
+            // press + release pair so apps that listen to either edge respond.
+            //
+            // NSEvent.otherEvent + NSApp posting must run on the MainActor in
+            // strict-concurrency mode, so we hop there explicitly.
+            let nx: Int32 = {
+                switch key {
+                case 0: return 16   // NX_KEYTYPE_PLAY
+                case 1: return 19   // NX_KEYTYPE_NEXT
+                case 2: return 20   // NX_KEYTYPE_PREVIOUS
+                case 3: return 0    // NX_KEYTYPE_SOUND_UP
+                case 4: return 1    // NX_KEYTYPE_SOUND_DOWN
+                case 5: return 7    // NX_KEYTYPE_MUTE
+                case 6: return 2    // NX_KEYTYPE_BRIGHTNESS_UP
+                case 7: return 3    // NX_KEYTYPE_BRIGHTNESS_DOWN
+                default: return 16
+                }
+            }()
+            Task { @MainActor in
+                Self.postMediaKey(nx: nx)
+            }
+
+        case .cycleDPI:
+            // Hop into MainActor land — the model lives there.
+            Task { @MainActor in
+                RemapActionDispatcher.shared?.cycleDPI()
+            }
+
+        case .toggleSmartShift:
+            Task { @MainActor in
+                RemapActionDispatcher.shared?.toggleSmartShift()
+            }
+
+        case .toggleScrollMode:
+            Task { @MainActor in
+                RemapActionDispatcher.shared?.toggleScrollMode()
+            }
+        }
+    }
+
+    /// Post an NSSystemDefined media key press + release. Splits the work into
+    /// a free function so the dispatchQueue.async block above stays readable.
+    private static func postMediaKey(nx: Int32) {
+        for state in [0xa, 0xb] { // 0xa = key down, 0xb = key up
+            let data1 = (Int(nx) << 16) | (state << 8)
+            let event = NSEvent.otherEvent(
+                with: .systemDefined,
+                location: .zero,
+                modifierFlags: NSEvent.ModifierFlags(rawValue: 0xa00),
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                subtype: 8,
+                data1: data1,
+                data2: -1
+            )
+            event?.cgEvent?.post(tap: .cghidEventTap)
         }
     }
 }
