@@ -53,9 +53,18 @@ MX Master 3S (BLE + USB), MX Master 3, MX Master 4, MX Master 2S, MX Master, MX 
 
 ## Install
 
-**End users (recommended):** grab the latest DMG from [Releases](https://github.com/Sanjays2402/optune/releases/latest), drag Optune.app to /Applications. The build is ad-hoc signed (no Apple Developer cert), so first launch needs a right-click → **Open** to bypass Gatekeeper. After that it launches normally.
+**Homebrew (recommended):**
 
-Optune needs **Input Monitoring** permission to send HID++ feature requests. The welcome flow links you straight to System Settings → Privacy & Security → Input Monitoring on first launch.
+```sh
+brew tap sanjays2402/optune
+brew install --cask optune
+```
+
+The cask is hosted at [`Sanjays2402/homebrew-optune`](https://github.com/Sanjays2402/homebrew-optune) and auto-bumps on every release.
+
+**Manual:** grab the latest DMG from [Releases](https://github.com/Sanjays2402/optune/releases/latest) and drag Optune.app to /Applications. The build is ad-hoc signed (no Apple Developer cert), so first launch needs a right-click → **Open** to bypass Gatekeeper. After that it launches normally.
+
+Optune needs **Input Monitoring** permission to send HID++ feature requests. The welcome flow links you straight to System Settings → Privacy & Security → Input Monitoring on first launch. Button-remap keystroke actions also need **Accessibility** permission (prompted on first use).
 
 ## Build from source
 
