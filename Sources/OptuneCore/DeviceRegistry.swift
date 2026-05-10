@@ -59,7 +59,64 @@ public struct DeviceDescriptor: Sendable, Hashable, Codable {
     }
 }
 
+// MARK: - JSON envelope
+
+/// Wire format for `Resources/devices.json`. PIDs are hex strings ("0xB034")
+/// for human readability — translated to Int on load.
+private struct DeviceRegistryFile: Decodable {
+    let version: Int
+    let devices: [DeviceEntry]
+
+    struct DeviceEntry: Decodable {
+        let modelName: String
+        let codename: String
+        let pids: [String]
+        let supportsBattery: Bool
+        let supportsDPI: Bool
+        let supportsSmartShift: Bool
+        let supportsThumbWheel: Bool
+        let supportsButtonRemap: Bool
+        let supportsGestures: Bool
+        let supportsSmoothScroll: Bool
+        let supportsEasySwitch: Bool
+        let dpiMin: Int
+        let dpiMax: Int
+        let defaultSmartShiftThreshold: UInt8
+
+        func toDescriptor() -> DeviceDescriptor? {
+            let parsed = pids.compactMap { (s: String) -> Int? in
+                let trimmed = s.lowercased().hasPrefix("0x")
+                    ? String(s.dropFirst(2))
+                    : s
+                return Int(trimmed, radix: 16)
+            }
+            guard !parsed.isEmpty else { return nil }
+            return DeviceDescriptor(
+                modelName: modelName,
+                codename: codename,
+                pids: Set(parsed),
+                supportsBattery: supportsBattery,
+                supportsDPI: supportsDPI,
+                supportsSmartShift: supportsSmartShift,
+                supportsThumbWheel: supportsThumbWheel,
+                supportsButtonRemap: supportsButtonRemap,
+                supportsGestures: supportsGestures,
+                supportsSmoothScroll: supportsSmoothScroll,
+                supportsEasySwitch: supportsEasySwitch,
+                dpiMin: dpiMin,
+                dpiMax: dpiMax,
+                defaultSmartShiftThreshold: defaultSmartShiftThreshold
+            )
+        }
+    }
+}
+
 /// Built-in registry of Logitech devices Optune has descriptors for.
+///
+/// The canonical source is `Sources/OptuneCore/Resources/devices.json` — community
+/// PRs adding devices only need to edit that file. The Swift fallbacks below mirror
+/// the JSON 1:1 and are used only if the bundle resource is missing (e.g. some test
+/// configurations).
 ///
 /// PIDs sourced from Solaar's `lib/logitech_receiver/descriptors.py` and Mouser's
 /// `core/logi_devices.py`. When a device pairs over multiple transports
@@ -143,10 +200,24 @@ public enum DeviceRegistry {
         dpiMax: 4000
     )
 
-    public static let all: [DeviceDescriptor] = [
+    private static let fallback: [DeviceDescriptor] = [
         mxMaster4, mxMaster3S, mxMaster3, mxMaster2S, mxMaster,
-        mxVertical, mxAnywhere3S, mxAnywhere3, mxAnywhere2S
+        mxVertical, mxAnywhere3S, mxAnywhere3, mxAnywhere2S,
     ]
+
+    /// Lazily loaded from the bundled `devices.json`, with the hardcoded
+    /// fallbacks above as a safety net.
+    public static let all: [DeviceDescriptor] = {
+        guard let url = Bundle.module.url(forResource: "devices", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(DeviceRegistryFile.self, from: data),
+              file.version == 1
+        else {
+            return fallback
+        }
+        let parsed = file.devices.compactMap { $0.toDescriptor() }
+        return parsed.isEmpty ? fallback : parsed
+    }()
 
     /// Match an enumerated device against the registry.
     public static func descriptor(for device: LogitechDevice) -> DeviceDescriptor? {

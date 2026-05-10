@@ -19,7 +19,10 @@ let package = Package(
     targets: [
         .target(
             name: "OptuneCore",
-            path: "Sources/OptuneCore"
+            path: "Sources/OptuneCore",
+            resources: [
+                .process("Resources/devices.json"),
+            ]
         ),
         .target(
             name: "OptuneUI",
