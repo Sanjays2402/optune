@@ -59,7 +59,11 @@ $ optune smartshift --off
 MX Master 3S — SmartShift disabled
 ```
 
-Commands: `devices`, `doctor`, `battery`, `dpi`, `smartshift`, `buttons`, `hosts`.
+Commands: `devices`, `doctor` (discovery & diagnostics) · `battery`, `fw`
+(status) · `dpi`, `speed`, `smartshift`, `wheel`, `thumbwheel` (pointer &
+scroll) · `buttons`, `name`, `host` (multi-host), `profile` (onboard),
+`reset` (device) · `monitor`, `export` (data). Run `optune <command> --help`
+for the full flags of each; most commands also take `--json` for scripting.
 
 ## Build from source
 

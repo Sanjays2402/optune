@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Optune device registry. To add a device, append an object below and open a PR. The app loads this file at build time via OptuneCore/DeviceRegistryLoader.swift; no Swift edits required for additions.",
+  "$comment": "Optune device registry. To add a device, append an object below and open a PR. The app loads this file at runtime via OptuneCore/DeviceRegistry.swift; no Swift edits required for additions.",
   "version": 1,
   "devices": [
     {

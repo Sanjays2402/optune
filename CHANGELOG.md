@@ -5,7 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-Nothing yet — see [open issues](https://github.com/Sanjays2402/optune/issues) for what's next.
+### Fixed — Docs
+- README CLI command list now covers the full surface (`fw`, `name`, `host`,
+  `profile`, `wheel`, `speed`, `thumbwheel`, `reset`, `monitor`, `export`) and
+  corrects `host` (previously listed as `hosts`).
+- `devices.json` `$comment` pointed at a nonexistent
+  `OptuneCore/DeviceRegistryLoader.swift`; the registry lives in
+  `OptuneCore/DeviceRegistry.swift` and loads the file at runtime.
 
 ## [0.6.0] — 2026-05-09
 
