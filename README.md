@@ -4,7 +4,11 @@ A native macOS replacement for Logitech Options+, written in Swift 6.
 
 Optune configures Logitech MX mice and keyboards over HID++ — battery, DPI, SmartShift, button remapping, multi-host switching, and keyboard backlight — without accounts, telemetry, background daemons, or ads. It ships as a single menu bar app plus an `optune` CLI, both driven by IOKit HIDManager (no kernel extensions).
 
-![Optune](docs/screenshots/v0.3-hero.png)
+[![Optune menu bar app and device controls](docs/screenshots/v0.3-hero.png)](https://github.com/Sanjays2402/optune/releases/latest)
+
+**[Download Optune for macOS →](https://github.com/Sanjays2402/optune/releases/latest)** · [Install with Homebrew](#install)
+
+Select a connected Logitech device, check its battery, and adjust pointer or keyboard settings. Per-app profiles follow the application you are using.
 
 ```sh
 brew tap sanjays2402/optune
