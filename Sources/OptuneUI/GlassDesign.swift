@@ -324,6 +324,7 @@ public struct CapabilityPill: View {
     public let text: String
     public let tone: Tone
     public let style: Style
+    @Environment(\.colorScheme) private var scheme
 
     public enum Style { case filled, outline }
     public enum Tone {
@@ -358,8 +359,9 @@ public struct CapabilityPill: View {
 
     public var body: some View {
         Text(text)
-            .font(OptuneDesign.Typography.caption)
+            .font(OptuneDesign.Typography.caption.weight(.semibold))
             .foregroundStyle(tone.foreground)
+            .brightness(scheme == .light ? -0.30 : 0)   // keep tinted text legible on light glass
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(

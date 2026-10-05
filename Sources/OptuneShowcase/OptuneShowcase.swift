@@ -283,7 +283,7 @@ private struct MenuMock: View {
         }
         .background(LiquidGlassSurface())
         .clipShape(RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous))
-        .shadow(color: .black.opacity(0.40), radius: 30, y: 16)
+        .shadow(color: .black.opacity(0.22), radius: 30, y: 16)
     }
 
     private func menuRow(_ symbol: String, _ label: String, _ key: String?, hovered: Bool) -> some View {
@@ -305,6 +305,7 @@ private struct MockWindow<Content: View>: View {
     let selected: String
     var width: CGFloat = 1080
     var height: CGFloat = 700
+    @Environment(\.colorScheme) private var scheme
     @ViewBuilder let content: () -> Content
 
     private let panes: [(String, String, Color)] = [
@@ -365,24 +366,21 @@ private struct MockWindow<Content: View>: View {
                 .padding(14)
             }
             .frame(width: 224)
-            .background(.ultraThinMaterial)
+            .background(scheme == .dark ? Color.black.opacity(0.18) : Color.white.opacity(0.38))
 
             ZStack {
                 PageBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) { content() }
-                        .padding(32)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .scrollDisabled(true)
+                VStack(alignment: .leading, spacing: 20) { content() }
+                    .padding(32)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .frame(width: width, height: height)
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.8))
-        .shadow(color: .black.opacity(0.45), radius: 40, y: 20)
+            .strokeBorder(Color.white.opacity(scheme == .dark ? 0.22 : 0.7), lineWidth: 0.8))
+        .shadow(color: .black.opacity(scheme == .dark ? 0.45 : 0.16), radius: 40, y: 20)
     }
 }
 
