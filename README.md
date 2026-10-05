@@ -11,7 +11,7 @@ Native Swift 6 · SwiftUI Liquid Glass · no accounts, no telemetry, no backgrou
 <br>
 
 <a href="https://github.com/Sanjays2402/optune/releases/latest">
-  <img src="docs/screenshots/hero-dark.png" alt="Optune menu bar app and settings on macOS" width="860">
+  <img src="docs/screenshots/hero-light.png" alt="Optune menu bar app and settings on macOS" width="860">
 </a>
 
 </div>
