@@ -137,15 +137,19 @@ private struct DeviceCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
             HStack(alignment: .center, spacing: OptuneDesign.Spacing.md) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(.tint.opacity(0.16))
-                    Image(systemName: "computermouse")
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(.tint)
-                        .symbolRenderingMode(.hierarchical)
+                if case .ok(let percent, let charging, _) = telemetry.battery {
+                    RingGauge(percent: Int(percent), charging: charging, size: 40)
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(.tint.opacity(0.16))
+                        Image(systemName: "computermouse")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundStyle(.tint)
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                    .frame(width: 32, height: 32)
                 }
-                .frame(width: 32, height: 32)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(descriptor.modelName)

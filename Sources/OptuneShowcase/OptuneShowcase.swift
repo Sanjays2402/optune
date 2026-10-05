@@ -29,7 +29,7 @@ private struct Options {
     var size: CGSize {
         switch scene {
         case "menu":    return CGSize(width: 560, height: 700)
-        case "hero":    return CGSize(width: 1480, height: 980)
+        case "hero":    return CGSize(width: 1600, height: 880)
         default:        return CGSize(width: 1240, height: 800)
         }
     }
@@ -153,19 +153,28 @@ private struct Wallpaper<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: scheme == .dark
-                    ? [Color(red: 0.05, green: 0.06, blue: 0.16), Color(red: 0.12, green: 0.05, blue: 0.24), Color(red: 0.03, green: 0.12, blue: 0.22)]
-                    : [Color(red: 0.74, green: 0.82, blue: 0.99), Color(red: 0.90, green: 0.80, blue: 0.98), Color(red: 0.78, green: 0.92, blue: 0.97)],
-                startPoint: .topLeading, endPoint: .bottomTrailing)
-            Circle().fill(Color.purple.opacity(scheme == .dark ? 0.55 : 0.40)).frame(width: 520, height: 520)
-                .blur(radius: 110).offset(x: -380, y: -220)
-            Circle().fill(Color.blue.opacity(scheme == .dark ? 0.45 : 0.40)).frame(width: 460, height: 460)
-                .blur(radius: 110).offset(x: 400, y: 280)
-            Circle().fill(Color.pink.opacity(scheme == .dark ? 0.32 : 0.30)).frame(width: 340, height: 340)
-                .blur(radius: 90).offset(x: -40, y: 360)
-            content()
+        let dark = scheme == .dark
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            ZStack {
+                LinearGradient(
+                    colors: dark
+                        ? [Color(red: 0.03, green: 0.05, blue: 0.14), Color(red: 0.07, green: 0.04, blue: 0.20)]
+                        : [Color(red: 0.80, green: 0.89, blue: 1.00), Color(red: 0.93, green: 0.85, blue: 1.00)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)
+                // aurora
+                Ellipse().fill(Color(red: 0.10, green: 0.62, blue: 1.00).opacity(dark ? 0.60 : 0.65))
+                    .frame(width: w * 0.55, height: h * 0.55).blur(radius: 100).position(x: w * 0.10, y: h * 0.12)
+                Ellipse().fill(Color(red: 0.55, green: 0.30, blue: 1.00).opacity(dark ? 0.65 : 0.55))
+                    .frame(width: w * 0.50, height: h * 0.60).blur(radius: 110).position(x: w * 0.78, y: h * 0.18)
+                Ellipse().fill(Color(red: 1.00, green: 0.25, blue: 0.62).opacity(dark ? 0.50 : 0.45))
+                    .frame(width: w * 0.45, height: h * 0.45).blur(radius: 110).position(x: w * 0.28, y: h * 0.95)
+                Ellipse().fill(Color(red: 0.10, green: 0.90, blue: 0.80).opacity(dark ? 0.40 : 0.50))
+                    .frame(width: w * 0.40, height: h * 0.40).blur(radius: 110).position(x: w * 0.95, y: h * 0.92)
+                content()
+            }
+            .frame(width: w, height: h)
+            .clipped()
         }
         .ignoresSafeArea()
     }
@@ -176,35 +185,14 @@ private struct Wallpaper<Content: View>: View {
 private struct Hero: View {
     var body: some View {
         Wallpaper {
-            VStack(spacing: 28) {
-                HStack(alignment: .center, spacing: 16) {
-                    BrandTile(size: 72)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Optune")
-                            .font(.system(size: 42, weight: .bold, design: .rounded))
-                        Text("The open-source Logitech Options+ replacement for macOS — v\(OptuneCore.Optune.version)")
-                            .font(.system(size: 15, weight: .medium, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Swift 6  ·  IOKit  ·  GPL-3.0")
-                        Text("github.com/Sanjays2402/optune")
-                    }
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                }
-                HStack(alignment: .top, spacing: 28) {
-                    MenuMock().frame(width: 380)
-                    VStack(spacing: 22) {
-                        PointerCards()
-                        BatteryCard()
-                    }
-                    .frame(maxWidth: .infinity, alignment: .top)
-                }
-                Spacer(minLength: 0)
+            ZStack(alignment: .topLeading) {
+                MockWindow(selected: "Devices", width: 1000, height: 690) { DevicesPane() }
+                    .offset(x: 540, y: 96)
+                MenuMock()
+                    .frame(width: 380)
+                    .offset(x: 70, y: 56)
             }
-            .padding(48)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }
@@ -245,11 +233,7 @@ private struct MenuMock: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.tint.opacity(0.16))
-                        Image(systemName: "computermouse").font(.system(size: 18)).foregroundStyle(.tint)
-                    }
-                    .frame(width: 36, height: 36)
+                    RingGauge(percent: 78, size: 40)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("MX Master 3S").font(OptuneDesign.Typography.header)
                         Text("Bluetooth Low Energy · 0xB034")
@@ -319,6 +303,8 @@ private struct MenuMock: View {
 
 private struct MockWindow<Content: View>: View {
     let selected: String
+    var width: CGFloat = 1080
+    var height: CGFloat = 700
     @ViewBuilder let content: () -> Content
 
     private let panes: [(String, String, Color)] = [
@@ -391,7 +377,7 @@ private struct MockWindow<Content: View>: View {
                 .scrollDisabled(true)
             }
         }
-        .frame(width: 1080, height: 700)
+        .frame(width: width, height: height)
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)

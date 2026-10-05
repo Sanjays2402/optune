@@ -21,9 +21,13 @@ public struct BatterySparkline: View {
             let lo = window?.lowerBound ?? samples[0].timestamp
             let hi = window?.upperBound ?? samples[samples.count - 1].timestamp
             let span = max(hi.timeIntervalSince(lo), 1)
+            // Auto-scale the y-axis to the data so slow drains stay readable.
+            let values = samples.map(\.percent)
+            let yMin = Double(max(0, (values.min() ?? 0) - 8))
+            let yMax = Double(min(100, max((values.max() ?? 100) + 4, Int(yMin) + 20)))
             let pts = samples.map { s in
                 CGPoint(x: CGFloat(s.timestamp.timeIntervalSince(lo) / span) * size.width,
-                        y: (1 - CGFloat(s.percent) / 100) * size.height)
+                        y: size.height * (1 - CGFloat((Double(s.percent) - yMin) / (yMax - yMin))) * 0.88 + size.height * 0.06)
             }
 
             for frac in [0.25, 0.5, 0.75] {
