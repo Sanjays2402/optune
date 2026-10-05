@@ -94,6 +94,7 @@ private struct WindowGrabber: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
+@MainActor
 private enum Snapshot {
     static func capture(window: NSWindow, to path: String) {
         // Preferred: the system compositor, so materials and glass render for real.
