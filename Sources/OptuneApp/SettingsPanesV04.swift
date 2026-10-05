@@ -96,15 +96,7 @@ struct WheelPane: View {
             }
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 
     @ViewBuilder
@@ -160,15 +152,7 @@ struct WheelPane: View {
             }
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 
     @ViewBuilder
@@ -244,15 +228,7 @@ struct WheelPane: View {
             }
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 
     private var currentSpeed: Double? {
@@ -321,10 +297,7 @@ struct HostsPane: View {
                     Spacer()
                 }
                 .padding(OptuneDesign.Spacing.lg)
-                .background(
-                    RoundedRectangle(cornerRadius: OptuneDesign.Radius.group, style: .continuous)
-                        .fill(.regularMaterial)
-                )
+                .glassSurface(cornerRadius: OptuneDesign.Radius.group)
             }
         }
         .alert("Switch host?", isPresented: Binding(
@@ -624,59 +597,5 @@ struct GeneralPane: View {
         }
         .padding(.horizontal, OptuneDesign.Spacing.lg - 2)
         .padding(.vertical, OptuneDesign.Spacing.md)
-    }
-}
-
-// MARK: - Battery sparkline (used in DevicesPane and About)
-
-struct BatterySparkline: View {
-    let samples: [BatterySample]
-    let height: CGFloat
-    /// Time window shown on the x-axis; nil spans the samples' own range.
-    var window: ClosedRange<Date>? = nil
-
-    var body: some View {
-        GeometryReader { geo in
-            Canvas { ctx, size in
-                guard samples.count >= 2 else { return }
-                let lo = window?.lowerBound ?? samples[0].timestamp
-                let hi = window?.upperBound ?? samples[samples.count - 1].timestamp
-                let span = max(hi.timeIntervalSince(lo), 1)
-                let xs = samples.map { sample in
-                    CGFloat(sample.timestamp.timeIntervalSince(lo) / span) * size.width
-                }
-                let ys = samples.map { sample in
-                    (1 - CGFloat(sample.percent) / 100.0) * size.height
-                }
-
-                var line = Path()
-                line.move(to: CGPoint(x: xs[0], y: ys[0]))
-                for i in 1..<samples.count {
-                    line.addLine(to: CGPoint(x: xs[i], y: ys[i]))
-                }
-                ctx.stroke(
-                    line,
-                    with: .linearGradient(
-                        Gradient(colors: [.green, .accentColor]),
-                        startPoint: .zero,
-                        endPoint: CGPoint(x: size.width, y: 0)
-                    ),
-                    lineWidth: 1.8
-                )
-
-                // Fill the area under the curve faintly.
-                var area = line
-                area.addLine(to: CGPoint(x: size.width, y: size.height))
-                area.addLine(to: CGPoint(x: 0, y: size.height))
-                area.closeSubpath()
-                ctx.fill(area, with: .linearGradient(
-                    Gradient(colors: [Color.accentColor.opacity(0.18), Color.accentColor.opacity(0.02)]),
-                    startPoint: .zero,
-                    endPoint: CGPoint(x: 0, y: size.height)
-                ))
-            }
-            .frame(height: height)
-        }
-        .frame(height: height)
     }
 }

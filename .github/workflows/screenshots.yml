@@ -1,0 +1,35 @@
+name: Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Runner label'
+        default: 'macos-26'
+
+jobs:
+  shoot:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Toolchain
+        run: swift --version
+      - name: Build showcase
+        run: swift build -c release --product OptuneShowcase
+      - name: Bundle
+        run: bash Scripts/bundle-showcase.sh release
+      - name: Capture scenes
+        run: |
+          mkdir -p shots
+          APP=".build/OptuneShowcase.app"
+          for mode in dark light; do
+            for scene in hero menu pointer battery buttons; do
+              OUT="$PWD/shots/${scene}-${mode}.png"
+              open -n -W "$APP" --args --scene "$scene" --$mode --out "$OUT" || true
+              ls -la "$OUT" || echo "missing $OUT"
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/*.png

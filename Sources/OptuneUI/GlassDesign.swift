@@ -93,24 +93,7 @@ public struct InsetGroup<Content: View>: View {
         VStack(spacing: 0) {
             content
         }
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: OptuneDesign.Radius.group, style: .continuous)
-                    .fill(.regularMaterial)
-                if let tint {
-                    RoundedRectangle(cornerRadius: OptuneDesign.Radius.group, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [tint.opacity(0.08), Color.clear],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        )
-                }
-                RoundedRectangle(cornerRadius: OptuneDesign.Radius.group, style: .continuous)
-                    .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-            }
-        )
-        .shadow(color: Color.black.opacity(0.10), radius: 12, y: 3)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.group, tint: tint)
     }
 }
 
@@ -168,56 +151,120 @@ public struct GroupDivider: View {
 
 // MARK: - Backgrounds
 
-/// Page background for Settings detail panes — sits behind grouped lists.
-/// Uses adaptive `windowBackgroundColor` for proper light/dark fidelity.
+/// Page background for Settings detail panes — a soft ambient wash of colour
+/// orbs behind the content so the glass surfaces above have something to
+/// refract. Lets the window material show through.
 public struct PageBackground: View {
+    @Environment(\.colorScheme) private var scheme
     public init() {}
     public var body: some View {
-        ZStack {
-            Color(nsColor: .windowBackgroundColor)
-            // very subtle radial glow tinted by accent — Linear / macOS 26 style.
-            RadialGradient(
-                colors: [Color.accentColor.opacity(0.06), Color.clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 600
-            )
-            .blendMode(.plusLighter)
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            let k: Double = scheme == .dark ? 1.0 : 0.55
+            ZStack {
+                Color(nsColor: .windowBackgroundColor).opacity(scheme == .dark ? 0.55 : 0.70)
+                Circle().fill(Color.accentColor.opacity(0.34 * k))
+                    .frame(width: w * 0.62, height: w * 0.62)
+                    .blur(radius: 90)
+                    .position(x: w * 0.08, y: h * 0.02)
+                Circle().fill(Color.purple.opacity(0.26 * k))
+                    .frame(width: w * 0.55, height: w * 0.55)
+                    .blur(radius: 100)
+                    .position(x: w * 0.98, y: h * 0.42)
+                Circle().fill(Color.teal.opacity(0.22 * k))
+                    .frame(width: w * 0.5, height: w * 0.5)
+                    .blur(radius: 100)
+                    .position(x: w * 0.30, y: h * 1.02)
+            }
+            .frame(width: w, height: h)
+            .clipped()
         }
         .ignoresSafeArea()
+    }
+}
+
+// MARK: - Glass surface
+
+/// Layered glass: native Liquid Glass on macOS 26 (when built with the 26 SDK),
+/// otherwise a blur material with a tint wash, a top light, and a specular rim.
+public struct GlassSurfaceModifier: ViewModifier {
+    public var cornerRadius: CGFloat
+    public var tint: Color?
+    public var shadowRadius: CGFloat
+    @Environment(\.colorScheme) private var scheme
+
+    public init(cornerRadius: CGFloat, tint: Color? = nil, shadowRadius: CGFloat = 14) {
+        self.cornerRadius = cornerRadius
+        self.tint = tint
+        self.shadowRadius = shadowRadius
+    }
+
+    public func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint((tint ?? .clear).opacity(tint == nil ? 0 : 0.12)), in: shape)
+                .shadow(color: .black.opacity(scheme == .dark ? 0.30 : 0.10), radius: shadowRadius, y: shadowRadius / 4)
+        } else {
+            fallback(content, shape)
+        }
+        #else
+        fallback(content, shape)
+        #endif
+    }
+
+    private func fallback(_ content: Content, _ shape: RoundedRectangle) -> some View {
+        content
+            .background(
+                ZStack {
+                    shape.fill(.regularMaterial)
+                    if let tint {
+                        shape.fill(LinearGradient(
+                            colors: [tint.opacity(0.16), tint.opacity(0.02)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+                    // top light — the "wet glass" sheen
+                    shape.fill(LinearGradient(
+                        colors: [Color.white.opacity(scheme == .dark ? 0.09 : 0.34), .clear],
+                        startPoint: .top, endPoint: .center))
+                    // specular rim
+                    shape.strokeBorder(LinearGradient(
+                        colors: [Color.white.opacity(scheme == .dark ? 0.30 : 0.70),
+                                 Color.white.opacity(0.04),
+                                 Color.white.opacity(scheme == .dark ? 0.12 : 0.30)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.8)
+                }
+            )
+            .shadow(color: .black.opacity(scheme == .dark ? 0.30 : 0.10), radius: shadowRadius, y: shadowRadius / 4)
     }
 }
 
 /// Translucent menu bar dropdown surface — Liquid Glass on macOS 26+,
 /// composited materials on older SDKs.
 public struct LiquidGlassSurface: View {
+    @Environment(\.colorScheme) private var scheme
     public init() {}
     public var body: some View {
+        let shape = RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
         ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
+            Rectangle().fill(.regularMaterial)
             LinearGradient(
-                colors: [
-                    Color.white.opacity(0.10),
-                    Color.white.opacity(0.02),
-                    Color.clear
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [Color.accentColor.opacity(0.10), Color.purple.opacity(0.05), .clear],
+                startPoint: .topLeading, endPoint: .bottomTrailing
             )
-            .blendMode(.overlay)
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.18),
-                            Color.white.opacity(0.04)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+            LinearGradient(
+                colors: [Color.white.opacity(scheme == .dark ? 0.10 : 0.30), .clear],
+                startPoint: .top, endPoint: .init(x: 0.5, y: 0.35)
+            )
+            shape.strokeBorder(
+                LinearGradient(
+                    colors: [Color.white.opacity(scheme == .dark ? 0.32 : 0.70),
+                             Color.white.opacity(0.05),
+                             Color.white.opacity(scheme == .dark ? 0.14 : 0.30)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing),
+                lineWidth: 1
+            )
         }
     }
 }
@@ -236,27 +283,16 @@ public struct GlassCardModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .padding(padding)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.regularMaterial)
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [tint.opacity(0.10), Color.clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-                }
-            )
-            .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
+            .glassSurface(cornerRadius: 16, tint: tint, shadowRadius: 12)
     }
 }
 
 public extension View {
+    /// Glass background (Liquid Glass on macOS 26, layered material otherwise).
+    func glassSurface(cornerRadius: CGFloat = 16, tint: Color? = nil, shadowRadius: CGFloat = 14) -> some View {
+        modifier(GlassSurfaceModifier(cornerRadius: cornerRadius, tint: tint, shadowRadius: shadowRadius))
+    }
+
     func glassCard(tint: Color = .accentColor, padding: CGFloat = OptuneDesign.Spacing.md + 2) -> some View {
         modifier(GlassCardModifier(tint: tint, padding: padding))
     }
@@ -322,6 +358,7 @@ public struct CapabilityPill: View {
                 Capsule(style: .continuous)
                     .strokeBorder(tone.foreground.opacity(style == .outline ? 0.45 : 0.18), lineWidth: 0.5)
             )
+            .shadow(color: tone.foreground.opacity(style == .filled ? 0.22 : 0), radius: 5)
             .contentTransition(.numericText())
             .animation(OptuneDesign.Motion.snappy, value: text)
             .animation(OptuneDesign.Motion.snappy, value: tone.foreground)
@@ -348,6 +385,10 @@ public struct ConnectionChip: View {
                 .font(OptuneDesign.Typography.caption)
                 .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+        .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5))
     }
 }
 
@@ -379,15 +420,19 @@ public struct FeatureRow<Trailing: View>: View {
     public var body: some View {
         HStack(alignment: .center, spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(symbolTint.opacity(0.14))
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(LinearGradient(
+                        colors: [symbolTint.opacity(0.30), symbolTint.opacity(0.10)],
+                        startPoint: .top, endPoint: .bottom))
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(symbolTint.opacity(0.25), lineWidth: 0.5)
                 Image(systemName: symbol)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(symbolTint)
                     .symbolRenderingMode(.hierarchical)
                     .symbolEffect(.bounce, options: .nonRepeating, value: secondary ?? "")
             }
-            .frame(width: 22, height: 22)
+            .frame(width: 26, height: 26)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label).font(OptuneDesign.Typography.body)
@@ -496,29 +541,67 @@ public struct GhostButtonStyle: ButtonStyle {
     public init(tint: Color = .accentColor) { self.tint = tint }
 
     public func makeBody(configuration: Configuration) -> some View {
+        GhostButtonBody(configuration: configuration, tint: tint)
+    }
+}
+
+private struct GhostButtonBody: View {
+    let configuration: ButtonStyleConfiguration
+    let tint: Color
+    @State private var hover = false
+
+    var body: some View {
         configuration.label
             .font(OptuneDesign.Typography.body)
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 11)
             .padding(.vertical, 5)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(configuration.isPressed
-                          ? tint.opacity(0.18)
-                          : tint.opacity(0.10))
+                Capsule(style: .continuous)
+                    .fill(tint.opacity(configuration.isPressed ? 0.26 : (hover ? 0.18 : 0.11)))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(tint.opacity(0.15), lineWidth: 0.5)
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(hover ? 0.35 : 0.18), lineWidth: 0.5)
             )
             .foregroundStyle(tint)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .onHover { hover = $0 }
             .animation(OptuneDesign.Motion.press, value: configuration.isPressed)
+            .animation(OptuneDesign.Motion.glide, value: hover)
     }
 }
 
 public extension ButtonStyle where Self == GhostButtonStyle {
     static var ghost: GhostButtonStyle { GhostButtonStyle() }
     static func ghost(tint: Color) -> GhostButtonStyle { GhostButtonStyle(tint: tint) }
+}
+
+/// Filled call-to-action button with a lit gradient and soft glow.
+public struct GlassProminentButtonStyle: ButtonStyle {
+    public var tint: Color
+    public init(tint: Color = .accentColor) { self.tint = tint }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(OptuneDesign.Typography.body.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous).fill(LinearGradient(
+                    colors: [tint.opacity(0.95), tint.opacity(0.70)],
+                    startPoint: .top, endPoint: .bottom))
+            )
+            .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.28), lineWidth: 0.6))
+            .shadow(color: tint.opacity(configuration.isPressed ? 0.15 : 0.40), radius: 8, y: 2)
+            .brightness(configuration.isPressed ? -0.06 : 0)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(OptuneDesign.Motion.press, value: configuration.isPressed)
+    }
+}
+
+public extension ButtonStyle where Self == GlassProminentButtonStyle {
+    static var glassProminent: GlassProminentButtonStyle { GlassProminentButtonStyle() }
 }
 
 // MARK: - Skeleton loader

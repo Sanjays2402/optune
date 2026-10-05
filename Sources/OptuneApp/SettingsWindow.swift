@@ -105,6 +105,7 @@ struct SettingsWindow: View {
             }
         }
         .frame(minWidth: 880, minHeight: 640)
+        .containerBackground(.thinMaterial, for: .window)
         .navigationTitle("Optune")
     }
 
@@ -192,11 +193,18 @@ private struct SidebarItem: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(isSelected
-                          ? Color.accentColor
-                          : (hover ? Color.primary.opacity(0.06) : Color.clear))
+                          ? AnyShapeStyle(LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.72)],
+                                startPoint: .top, endPoint: .bottom))
+                          : AnyShapeStyle(hover ? Color.primary.opacity(0.07) : Color.clear))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .strokeBorder(Color.white.opacity(isSelected ? 0.30 : 0), lineWidth: 0.6)
+            )
+            .shadow(color: Color.accentColor.opacity(isSelected ? 0.35 : 0), radius: 6, y: 2)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -461,15 +469,7 @@ private struct DeviceDetailCard: View {
             BatteryInsightsCard(device: device)
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                    .fill(.regularMaterial)
-                RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                    .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-            }
-        )
-        .shadow(color: Color.black.opacity(0.10), radius: 14, y: 4)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 
     private var transportLabel: String {
@@ -664,14 +664,7 @@ private struct DPIStagesEditor: View {
             .controlSize(.small)
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 }
 
@@ -736,15 +729,7 @@ private struct DPIControl: View {
             }
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 
     private var bounds: (Int, Int, Int)? {
@@ -824,15 +809,7 @@ private struct SmartShiftControl: View {
             }
         }
         .padding(OptuneDesign.Spacing.xl)
-        .background(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .fill(.regularMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
-                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 10, y: 3)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
     }
 
     private var isEnabled: Bool {
@@ -1209,14 +1186,7 @@ private struct AboutPane: View {
                 }
             }
             .padding(OptuneDesign.Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: OptuneDesign.Radius.group, style: .continuous)
-                    .fill(.regularMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: OptuneDesign.Radius.group, style: .continuous)
-                    .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
-            )
+            .glassSurface(cornerRadius: OptuneDesign.Radius.group)
         }
     }
 
