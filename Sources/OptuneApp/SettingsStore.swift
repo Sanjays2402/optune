@@ -31,6 +31,8 @@ struct DeviceSettings: Codable, Equatable {
     var batteryHistory: [BatterySample]
     /// Per-device low-battery alert threshold; falls back to the app-wide value when nil.
     var lowBatteryThreshold: Int?
+    /// User-defined DPI stages for the cycle action and menu bar quick-switch.
+    var dpiStages: [Int]?
 
     init(productID: Int, serialNumber: String? = nil) {
         self.productID = productID
@@ -61,6 +63,8 @@ struct OptuneAppSettings: Codable, Equatable {
     var autoUpdateEnabled: Bool = true
     /// Whether the welcome window has been completed once.
     var welcomeCompleted: Bool = false
+    /// Whether ⌃⌥D cycles DPI stages system-wide.
+    var dpiHotkeyEnabled: Bool = false
 
     init() {}
 
@@ -68,7 +72,7 @@ struct OptuneAppSettings: Codable, Equatable {
         case lowBatteryThreshold, lowBatteryNotificationsEnabled
         case connectionNotificationsEnabled, hostSwitchNotificationsEnabled
         case launchAtLogin, autoApplyOnReconnect
-        case appProfilesEnabled, appProfiles, autoUpdateEnabled, welcomeCompleted
+        case appProfilesEnabled, appProfiles, autoUpdateEnabled, welcomeCompleted, dpiHotkeyEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -83,6 +87,7 @@ struct OptuneAppSettings: Codable, Equatable {
         appProfiles                      = (try? c.decodeIfPresent([AppProfile].self, forKey: .appProfiles))                ?? []
         autoUpdateEnabled                = (try? c.decodeIfPresent(Bool.self,   forKey: .autoUpdateEnabled))                ?? true
         welcomeCompleted                 = (try? c.decodeIfPresent(Bool.self,   forKey: .welcomeCompleted))                 ?? false
+        dpiHotkeyEnabled                 = (try? c.decodeIfPresent(Bool.self,   forKey: .dpiHotkeyEnabled))                 ?? false
     }
 }
 

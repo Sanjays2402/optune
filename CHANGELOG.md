@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — DPI stages
+- User-defined **DPI stages** (up to 6, snapped to the device step), edited in the Pointer pane; defaults to low/mid/high for the device range.
+- **Menu bar quick-switch**: one-tap stage chips under the Pointer row.
+- **⌃⌥D global hotkey** (opt-in) cycles to the next stage from anywhere; no extra permissions needed.
+- "Cycle DPI Presets" button action now rotates through the saved stages instead of fixed 800/mid/3200.
+
 ### Added — Gesture remaps
 - Gesture buttons (CIDs 0x00C3 / 0x00D7 / 0x00ED) now support hold-and-swipe: one action each for
   up / down / left / right, set from the Buttons pane. A plain press still fires the button's own action.

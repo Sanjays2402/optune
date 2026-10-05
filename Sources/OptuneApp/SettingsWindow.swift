@@ -604,6 +604,7 @@ private struct PointerPane: View {
                         draft: $dpiDraft,
                         apply: { model.applyDPI($0) }
                     )
+                    DPIStagesEditor()
                     SmartShiftControl(
                         state: model.telemetry.smartShift,
                         draft: $smartshiftDraft,
@@ -615,6 +616,62 @@ private struct PointerPane: View {
                 NoDeviceState()
             }
         }
+    }
+}
+
+private struct DPIStagesEditor: View {
+    @EnvironmentObject private var model: DeviceModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("DPI stages").font(OptuneDesign.Typography.header)
+                Text("Saved values for the menu bar quick-switch, the “Cycle DPI Presets” button action and the hotkey.")
+                    .font(OptuneDesign.Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 8) {
+                ForEach(model.dpiStages, id: \.self) { stage in
+                    HStack(spacing: 4) {
+                        Text("\(stage)").monospacedDigit()
+                        Button { model.removeDPIStage(stage) } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .font(OptuneDesign.Typography.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.accentColor.opacity(0.14)))
+                }
+                Spacer()
+            }
+            HStack {
+                Button("Add current DPI") { model.addCurrentDPIStage() }
+                    .disabled(model.dpiStages.count >= DPIStages.maxStages)
+                Button("Reset to defaults") { model.resetDPIStages() }
+                Spacer()
+            }
+            .controlSize(.small)
+            Toggle(isOn: Binding(
+                get: { model.dpiHotkeyEnabled },
+                set: { model.setDPIHotkeyEnabled($0) }
+            )) {
+                Text("Cycle stages with ⌃⌥D from anywhere")
+                    .font(OptuneDesign.Typography.body)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+        .padding(OptuneDesign.Spacing.xl)
+        .background(
+            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
+                .fill(.regularMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: OptuneDesign.Radius.card, style: .continuous)
+                .strokeBorder(OptuneDesign.Layer.strokeSoft, lineWidth: 0.5)
+        )
     }
 }
 

@@ -181,6 +181,7 @@ final class DeviceModel: ObservableObject {
         OptuneNotifications.shared.requestAuthorizationIfNeeded()
         appProfileManager.deviceModel = self
         installRemapDispatcher()
+        syncDPIHotkey()
         sleepObserver = SleepObserver { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refresh()
@@ -215,21 +216,66 @@ final class DeviceModel: ObservableObject {
         RemapActionDispatcher.shared = d
     }
 
-    /// Cycle the DPI through the 3 standard presets — mirrors Mouser's
-    /// `cycle_dpi` action which rotates between user-saved DPI buckets.
-    /// We ladder through low/mid/high based on the device's reported range
-    /// rather than hardcoding 800/1600/3200 so MX Anywhere (max 4000) and
-    /// MX Master 3S (max 8000) both feel sensible.
-    private func cycleDPIPreset() {
-        guard case let .ok(current, minDPI, maxDPI, step, _) = telemetry.dpi else { return }
-        let stepSize = max(step ?? 50, 50)
-        let mid = (minDPI + maxDPI) / 2
-        // Snap each preset to a multiple of `stepSize` so the firmware
-        // accepts the write — many devices reject non-stepped DPIs.
-        func snap(_ v: Int) -> Int { (v / stepSize) * stepSize }
-        let presets = [snap(max(minDPI, 800)), snap(mid), snap(min(maxDPI, 3200))].sorted()
-        // Find the first preset strictly greater than current, or wrap to first.
-        let next = presets.first { $0 > current } ?? presets.first ?? current
+    // MARK: - DPI stages
+
+    /// User-saved stages (empty → use range-derived defaults).
+    @Published private(set) var storedDPIStages: [Int] = []
+    @Published private(set) var dpiHotkeyEnabled: Bool = SettingsStore.shared.app.dpiHotkeyEnabled
+
+    /// Effective stages: the user's list, or low/mid/high for the device's range.
+    var dpiStages: [Int] {
+        guard case let .ok(_, lo, hi, step, _) = telemetry.dpi else { return storedDPIStages }
+        let base = storedDPIStages.isEmpty ? DPIStages.defaults(min: lo, max: hi, step: step) : storedDPIStages
+        return DPIStages.normalize(base, min: lo, max: hi, step: step)
+    }
+
+    func setDPIStages(_ stages: [Int]) {
+        guard case let .ok(_, lo, hi, step, _) = telemetry.dpi else { return }
+        let clean = DPIStages.normalize(stages, min: lo, max: hi, step: step)
+        storedDPIStages = clean
+        if let device = primaryDevice {
+            store.update(for: device) { $0.dpiStages = clean.isEmpty ? nil : clean }
+        }
+    }
+
+    func addCurrentDPIStage() {
+        guard case let .ok(current, _, _, _, _) = telemetry.dpi else { return }
+        setDPIStages(dpiStages + [current])
+    }
+
+    func removeDPIStage(_ value: Int) {
+        // Keep at least one stage; an empty list would silently revert to defaults.
+        let remaining = dpiStages.filter { $0 != value }
+        if !remaining.isEmpty { setDPIStages(remaining) }
+    }
+
+    func resetDPIStages() {
+        storedDPIStages = []
+        if let device = primaryDevice { store.update(for: device) { $0.dpiStages = nil } }
+    }
+
+    /// Enable/disable the ⌃⌥D system-wide "next DPI stage" hotkey.
+    func setDPIHotkeyEnabled(_ enabled: Bool) {
+        dpiHotkeyEnabled = enabled
+        store.updateApp { $0.dpiHotkeyEnabled = enabled }
+        syncDPIHotkey()
+    }
+
+    private func syncDPIHotkey() {
+        if dpiHotkeyEnabled {
+            GlobalHotkey.shared.register(keyCode: 2) { [weak self] in   // kVK_ANSI_D
+                Task { @MainActor in self?.cycleDPIPreset() }
+            }
+        } else {
+            GlobalHotkey.shared.unregister()
+        }
+    }
+
+    /// Jump to the next DPI stage (wraps). Used by the remap action, the hotkey,
+    /// and the menu bar.
+    func cycleDPIPreset() {
+        guard case let .ok(current, _, _, _, _) = telemetry.dpi,
+              let next = DPIStages.next(after: current, in: dpiStages) else { return }
         applyDPI(next)
     }
 
@@ -259,6 +305,7 @@ final class DeviceModel: ObservableObject {
         // stand up the RemapEngine asynchronously.
         if !appearing.isEmpty {
             for device in next where appearing.contains(device.productID) {
+                storedDPIStages = store.settings(for: device).dpiStages ?? []
                 let persisted = store.settings(for: device).remapBindings ?? []
                 let persistedGestures = store.settings(for: device).gestureBindings ?? []
                 if !persisted.isEmpty || !persistedGestures.isEmpty {

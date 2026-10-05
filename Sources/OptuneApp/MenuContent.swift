@@ -167,6 +167,7 @@ private struct DeviceCard: View {
             VStack(spacing: OptuneDesign.Spacing.sm) {
                 BatteryRow(state: telemetry.battery)
                 DPIRow(state: telemetry.dpi, descriptor: descriptor)
+                DPIStagesBar()
                 SmartShiftRow(state: telemetry.smartShift, descriptor: descriptor)
                 ButtonsRow(state: telemetry.buttons, descriptor: descriptor)
             }
@@ -252,6 +253,35 @@ private struct BatteryRow: View {
             return .accent
         case .unavailable: return .warning
         case .unknown: return .neutral
+        }
+    }
+}
+
+/// One-tap DPI stage switcher shown under the Pointer row.
+private struct DPIStagesBar: View {
+    @EnvironmentObject private var model: DeviceModel
+
+    var body: some View {
+        if case .ok(let current, _, _, _, _) = model.telemetry.dpi {
+            HStack(spacing: 6) {
+                ForEach(model.dpiStages, id: \.self) { stage in
+                    Button { model.applyDPI(stage) } label: {
+                        Text("\(stage)")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .monospacedDigit()
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule().fill(stage == current
+                                    ? Color.accentColor.opacity(0.25)
+                                    : Color.primary.opacity(0.06))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.leading, 34)
         }
     }
 }
