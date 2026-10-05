@@ -41,6 +41,16 @@ private let options = Options()
 struct OptuneShowcase: App {
     init() {
         NSApplication.shared.appearance = NSAppearance(named: options.dark ? .darkAqua : .aqua)
+        fputs("showcase: launched scene=\(options.scene)\n", stderr)
+        // Headless path: render the SwiftUI tree straight to a PNG (no window server needed).
+        if CommandLine.arguments.contains("--render"), let out = options.out {
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    HeadlessRender.write(options: options, to: out)
+                    exit(0)
+                }
+            }
+        }
     }
 
     var body: some Scene {
@@ -80,6 +90,7 @@ private struct WindowGrabber: NSViewRepresentable {
         let view = NSView()
         guard let out else { return view }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            fputs("showcase: window=\(view.window != nil)\n", stderr)
             guard let window = view.window else { exit(2) }
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
@@ -111,6 +122,26 @@ private enum Snapshot {
               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+    }
+}
+
+@MainActor
+private enum HeadlessRender {
+    static func write(options: Options, to path: String) {
+        let view = SceneRoot(options: options)
+            .frame(width: options.size.width, height: options.size.height)
+            .environment(\.colorScheme, options.dark ? .dark : .light)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.nsImage,
+              let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else {
+            fputs("showcase: render failed\n", stderr)
+            return
+        }
+        try? png.write(to: URL(fileURLWithPath: path))
+        fputs("showcase: rendered \(path)\n", stderr)
     }
 }
 

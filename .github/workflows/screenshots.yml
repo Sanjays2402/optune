@@ -18,21 +18,28 @@ jobs:
         run: swift build -c release --product OptuneShowcase
       - name: Bundle
         run: bash Scripts/bundle-showcase.sh release
+      - name: Display diagnostics
+        run: |
+          launchctl managername || true
+          system_profiler SPDisplaysDataType | head -15 || true
+          mkdir -p shots
+          screencapture -x shots/_fullscreen.png || echo "screencapture failed"
+          ls -la shots
       - name: Capture scenes
         run: |
-          mkdir -p shots
           BIN=".build/OptuneShowcase.app/Contents/MacOS/OptuneShowcase"
-          shoot() {  # scene mode
-            OUT="$PWD/shots/$1-$2.png"
-            "$BIN" --scene "$1" --$2 --out "$OUT" > "shots/$1-$2.log" 2>&1 &
+          shoot() {  # scene mode flag suffix
+            OUT="$PWD/shots/$1-$2$4.png"
+            "$BIN" --scene "$1" --$2 --out "$OUT" $3 > "shots/$1-$2$4.log" 2>&1 &
             PID=$!
-            for i in $(seq 1 40); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+            for i in $(seq 1 15); do kill -0 $PID 2>/dev/null || break; sleep 1; done
             kill -9 $PID 2>/dev/null || true
-            ls -la "$OUT" 2>&1 || echo "missing $OUT"; cat "shots/$1-$2.log" | head -5
+            ls -la "$OUT" 2>&1 || echo "missing $OUT"; head -5 "shots/$1-$2$4.log"
           }
-          shoot hero dark
+          shoot menu dark "" ""
+          shoot menu dark "--render" "-render"
           for mode in dark light; do
-            for scene in hero menu pointer battery buttons; do shoot $scene $mode; done
+            for scene in hero menu pointer battery buttons; do shoot $scene $mode "--render" ""; done
           done
       - uses: actions/upload-artifact@v4
         if: always()
