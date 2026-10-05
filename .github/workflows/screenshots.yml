@@ -21,15 +21,21 @@ jobs:
       - name: Capture scenes
         run: |
           mkdir -p shots
-          APP=".build/OptuneShowcase.app"
+          BIN=".build/OptuneShowcase.app/Contents/MacOS/OptuneShowcase"
+          shoot() {  # scene mode
+            OUT="$PWD/shots/$1-$2.png"
+            "$BIN" --scene "$1" --$2 --out "$OUT" > "shots/$1-$2.log" 2>&1 &
+            PID=$!
+            for i in $(seq 1 40); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+            kill -9 $PID 2>/dev/null || true
+            ls -la "$OUT" 2>&1 || echo "missing $OUT"; cat "shots/$1-$2.log" | head -5
+          }
+          shoot hero dark
           for mode in dark light; do
-            for scene in hero menu pointer battery buttons; do
-              OUT="$PWD/shots/${scene}-${mode}.png"
-              open -n -W "$APP" --args --scene "$scene" --$mode --out "$OUT" || true
-              ls -la "$OUT" || echo "missing $OUT"
-            done
+            for scene in hero menu pointer battery buttons; do shoot $scene $mode; done
           done
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: screenshots
-          path: shots/*.png
+          path: shots/*
