@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     name: Build & package macOS app
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: write
     steps:
