@@ -185,6 +185,17 @@ public struct PageBackground: View {
 
 // MARK: - Glass surface
 
+private struct FlatGlassKey: EnvironmentKey { static let defaultValue = false }
+
+public extension EnvironmentValues {
+    /// Force the layered-material glass (skip native `glassEffect`). Used when
+    /// rendering offscreen, where the system glass layer can't be captured.
+    var optuneFlatGlass: Bool {
+        get { self[FlatGlassKey.self] }
+        set { self[FlatGlassKey.self] = newValue }
+    }
+}
+
 /// Layered glass: native Liquid Glass on macOS 26 (when built with the 26 SDK),
 /// otherwise a blur material with a tint wash, a top light, and a specular rim.
 public struct GlassSurfaceModifier: ViewModifier {
@@ -192,6 +203,7 @@ public struct GlassSurfaceModifier: ViewModifier {
     public var tint: Color?
     public var shadowRadius: CGFloat
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.optuneFlatGlass) private var flat
 
     public init(cornerRadius: CGFloat, tint: Color? = nil, shadowRadius: CGFloat = 14) {
         self.cornerRadius = cornerRadius
@@ -202,7 +214,7 @@ public struct GlassSurfaceModifier: ViewModifier {
     public func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), !flat {
             content
                 .glassEffect(.regular.tint((tint ?? .clear).opacity(tint == nil ? 0 : 0.12)), in: shape)
                 .shadow(color: .black.opacity(scheme == .dark ? 0.30 : 0.10), radius: shadowRadius, y: shadowRadius / 4)

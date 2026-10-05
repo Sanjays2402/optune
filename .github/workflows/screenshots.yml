@@ -18,13 +18,8 @@ jobs:
         run: swift build -c release --product OptuneShowcase
       - name: Bundle
         run: bash Scripts/bundle-showcase.sh release
-      - name: Display diagnostics
-        run: |
-          launchctl managername || true
-          system_profiler SPDisplaysDataType | head -15 || true
-          mkdir -p shots
-          screencapture -x shots/_fullscreen.png || echo "screencapture failed"
-          ls -la shots
+      - name: Prepare
+        run: mkdir -p shots
       - name: Capture scenes
         run: |
           BIN=".build/OptuneShowcase.app/Contents/MacOS/OptuneShowcase"
@@ -36,8 +31,6 @@ jobs:
             kill -9 $PID 2>/dev/null || true
             ls -la "$OUT" 2>&1 || echo "missing $OUT"; head -5 "shots/$1-$2$4.log"
           }
-          shoot menu dark "" ""
-          shoot menu dark "--render" "-render"
           for mode in dark light; do
             for scene in hero menu pointer battery buttons; do shoot $scene $mode "--render" ""; done
           done

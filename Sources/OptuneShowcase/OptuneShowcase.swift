@@ -131,6 +131,7 @@ private enum HeadlessRender {
         let view = SceneRoot(options: options)
             .frame(width: options.size.width, height: options.size.height)
             .environment(\.colorScheme, options.dark ? .dark : .light)
+            .environment(\.optuneFlatGlass, true)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         guard let image = renderer.nsImage,
@@ -421,7 +422,7 @@ private struct PointerCards: View {
                     Spacer()
                     Text("1600 dpi").font(OptuneDesign.Typography.value).foregroundStyle(.tint)
                 }
-                Slider(value: .constant(1600), in: 200...8000, step: 50)
+                MockSlider(value: 1600, range: 200...8000)
                 HStack {
                     Text("200").foregroundStyle(.tertiary)
                     Spacer()
@@ -455,7 +456,7 @@ private struct PointerCards: View {
                     Button("Reset to defaults") {}.buttonStyle(.ghost(tint: .secondary))
                     Spacer()
                     Text("⌃⌥D").font(OptuneDesign.Typography.mono).foregroundStyle(.secondary)
-                    Toggle("", isOn: .constant(true)).toggleStyle(.switch).labelsHidden().controlSize(.small)
+                    MockToggle()
                 }
             }
             .padding(20)
@@ -472,9 +473,9 @@ private struct PointerPane: View {
             HStack {
                 Label("SmartShift", systemImage: "wand.and.rays").font(OptuneDesign.Typography.header)
                 Spacer()
-                Toggle("", isOn: .constant(true)).toggleStyle(.switch).labelsHidden()
+                MockToggle()
             }
-            Slider(value: .constant(25), in: 1...50, step: 1)
+            MockSlider(value: 25, range: 1...50)
             Text("Lower values trip free-spin sooner. Higher values keep the wheel notched longer.")
                 .font(OptuneDesign.Typography.caption).foregroundStyle(.secondary)
         }
@@ -530,7 +531,7 @@ private struct BatteryCard: View {
             }
             HStack(spacing: 10) {
                 Text("Alert below").font(OptuneDesign.Typography.caption).foregroundStyle(.secondary)
-                Slider(value: .constant(20), in: 5...50, step: 5)
+                MockSlider(value: 20, range: 5...50)
                 Text("20%").font(OptuneDesign.Typography.caption).monospacedDigit()
             }
         }
@@ -635,5 +636,40 @@ private struct ButtonsPane: View {
         .padding(.horizontal, 10).padding(.vertical, 4)
         .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.accentColor.opacity(0.16)))
         .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Color.accentColor.opacity(0.28), lineWidth: 0.5))
+    }
+}
+
+// MARK: - Offscreen-safe controls (AppKit sliders/toggles can't be rendered headlessly)
+
+private struct MockSlider: View {
+    let value: Double
+    let range: ClosedRange<Double>
+    var body: some View {
+        GeometryReader { geo in
+            let f = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.14)).frame(height: 5)
+                Capsule().fill(Color.accentColor).frame(width: max(5, geo.size.width * f), height: 5)
+                Circle().fill(Color.white)
+                    .frame(width: 18, height: 18)
+                    .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+                    .offset(x: max(0, (geo.size.width - 18) * f))
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .frame(height: 20)
+    }
+}
+
+private struct MockToggle: View {
+    var on = true
+    var body: some View {
+        ZStack(alignment: on ? .trailing : .leading) {
+            Capsule().fill(on ? Color.green : Color.primary.opacity(0.18)).frame(width: 38, height: 22)
+            Circle().fill(Color.white).frame(width: 18, height: 18)
+                .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
+                .padding(2)
+        }
+        .frame(width: 38, height: 22)
     }
 }
