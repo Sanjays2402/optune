@@ -43,9 +43,7 @@ struct WelcomeWindow: View {
                         colors: [.accentColor, .accentColor.opacity(0.55)],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ))
-                Image(systemName: "computermouse.fill")
-                    .font(.system(size: 38, weight: .semibold))
-                    .foregroundStyle(.white)
+                MouseMark(height: 38 * 1.2)
             }
             .frame(width: 86, height: 86)
             .shadow(color: .accentColor.opacity(0.4), radius: 14, y: 4)

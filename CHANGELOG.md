@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Legal & policies
+- Privacy Policy, Terms of Use, Trademarks/non-affiliation notice, Third-party notices, Security policy,
+  Contributing guide (with DCO) and Code of Conduct — in the repo and on the website under `/docs/`.
+- About pane links to the policies and carries a non-affiliation notice.
+
+### Changed
+- App icon and logo tiles are now original drawn artwork (no longer built from an Apple SF Symbol,
+  whose licence doesn't permit use in icons/logos).
+- Website and docs load no third-party fonts or scripts.
+- About pane said "macOS 14+"; the requirement is macOS 15+.
+
 ## [0.7.0] — 2026-10-05
 
 ### Changed — UI

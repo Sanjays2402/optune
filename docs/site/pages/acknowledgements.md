@@ -27,8 +27,8 @@ If you use Linux, install Solaar. It's wonderful. Optune exists because macOS de
 ## Tooling
 
 - **[Sparkle](https://sparkle-project.org/)** isn't a dependency — Optune polls GitHub Releases directly to avoid the appcast plumbing. But the Sparkle docs are still the right reading material if you want to understand auto-update UX.
-- **[create-dmg](https://github.com/create-dmg/create-dmg)** — produces the universal DMG in CI.
-- **[Peekaboo](https://peekaboo.sh/)** — this docs site copies Peekaboo's design language. The structure (sidebar + content + TOC), the typography (Fraunces + JetBrains Mono), and the dark/light theme machinery are all theirs. We swapped the green ecto accent for macOS system blue.
+- **`hdiutil`** — macOS's own tool builds the DMG in CI.
+- **[Peekaboo](https://peekaboo.sh/)** — the layout of this docs site (sidebar, content, table of contents) is inspired by Peekaboo's documentation. We use the macOS system-blue accent and each visitor's own system fonts.
 
 ## Thanks
 

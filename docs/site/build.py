@@ -360,6 +360,7 @@ def build():
             .replace("{{SECTION}}", html.escape(page["section"].upper()))
             .replace("{{HERO_TITLE}}", html.escape(page.get("hero_title", page["title"])))
             .replace("{{LEDE}}", lede)
+            .replace("{{SOURCE}}", str(page.get("source") or f"docs/site/pages/{page['slug']}.md"))
             .replace("{{SLUG}}", page["slug"])
             .replace("{{CONTENT}}", body_html)
             .replace("{{PAGE_NAV}}", page_nav)

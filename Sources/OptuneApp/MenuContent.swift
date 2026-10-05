@@ -106,9 +106,7 @@ private struct HeaderCard: View {
                         colors: [Color.accentColor, Color.accentColor.opacity(0.55)],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ))
-                Image(systemName: "computermouse.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                MouseMark(height: 17 * 1.2)
             }
             .frame(width: 34, height: 34)
             .shadow(color: Color.accentColor.opacity(0.30), radius: 6, y: 2)

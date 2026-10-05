@@ -119,9 +119,7 @@ struct SettingsWindow: View {
                             colors: [Color.accentColor, Color.accentColor.opacity(0.55)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ))
-                    Image(systemName: "computermouse.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white)
+                    MouseMark(height: 12 * 1.2)
                 }
                 .frame(width: 22, height: 22)
                 .shadow(color: Color.accentColor.opacity(0.30), radius: 5, y: 1)
@@ -1050,10 +1048,7 @@ private struct AboutPane: View {
                             )
                         )
                         .blendMode(.overlay)
-                    Image(systemName: "computermouse.fill")
-                        .font(.system(size: 44, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .shadow(color: Color.black.opacity(0.20), radius: 4, y: 1)
+                    MouseMark(height: 44 * 1.2)
                 }
                 .frame(width: 92, height: 92)
 
@@ -1068,7 +1063,7 @@ private struct AboutPane: View {
                             .font(OptuneDesign.Typography.body)
                             .foregroundStyle(.secondary)
                         Text("·").foregroundStyle(.tertiary)
-                        Text("Swift 6 · macOS 14+")
+                        Text("Swift 6 · macOS 15+")
                             .font(OptuneDesign.Typography.body)
                             .foregroundStyle(.secondary)
                     }
@@ -1092,6 +1087,15 @@ private struct AboutPane: View {
                         .buttonStyle(.ghost)
                     }
                 }
+
+                HStack(spacing: 8) {
+                    ForEach([("Privacy", "privacy"), ("Terms", "terms"), ("Trademarks", "trademarks"), ("Notices", "third-party-notices")], id: \.1) { item in
+                        if let url = URL(string: "https://sanjays2402.github.io/optune/docs/\(item.1).html") {
+                            Link(item.0, destination: url)
+                                .buttonStyle(.ghost(tint: .secondary))
+                        }
+                    }
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.top, OptuneDesign.Spacing.lg)
@@ -1107,9 +1111,14 @@ private struct AboutPane: View {
                 Text("Built by Sanjay Santhanam")
                     .font(OptuneDesign.Typography.caption)
                     .foregroundStyle(.secondary)
-                Text("© 2026 · Made for the people who miss simple peripherals.")
+                Text("© 2026 · Free software under the GPL-3.0-or-later, provided without warranty.")
                     .font(OptuneDesign.Typography.caption)
                     .foregroundStyle(.tertiary)
+                Text("Independent project — not affiliated with or endorsed by Logitech or Apple. Logitech, MX Master, Options+ and other names are trademarks of their owners.")
+                    .font(OptuneDesign.Typography.footnote)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 460)
             }
             .frame(maxWidth: .infinity)
             .padding(.bottom, OptuneDesign.Spacing.lg)

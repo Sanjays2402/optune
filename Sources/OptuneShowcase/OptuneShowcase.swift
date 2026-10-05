@@ -206,9 +206,7 @@ private struct BrandTile: View {
                                       startPoint: .topLeading, endPoint: .bottomTrailing))
             RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
-            Image(systemName: "computermouse.fill")
-                .font(.system(size: size * 0.44, weight: .semibold))
-                .foregroundStyle(.white)
+            MouseMark(height: size * 0.44 * 1.2)
         }
         .frame(width: size, height: size)
         .shadow(color: .accentColor.opacity(0.5), radius: size * 0.3, y: size * 0.1)

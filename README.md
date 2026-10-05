@@ -4,7 +4,9 @@
 
 **The open-source Logitech Options+ replacement for macOS.**
 
-Native Swift 6 · SwiftUI Liquid Glass · no accounts, no telemetry, no background daemons.
+Native Swift 6 · SwiftUI · no accounts, no telemetry, no background daemons.
+
+<sub>Independent project — not affiliated with or endorsed by Logitech or Apple.</sub>
 
 [**Download for macOS →**](https://github.com/Sanjays2402/optune/releases/latest) · [Install with Homebrew](#install) · [CLI](#cli) · [Changelog](CHANGELOG.md)
 
@@ -134,8 +136,19 @@ A HID++ feature added to `OptuneCore` is available in every surface.
 
 Issues and PRs are welcome — run `swift build` and `swift test` first. Adding a device is a one-file change to [`devices.json`](Sources/OptuneCore/Resources/devices.json) with no Swift edits; see [docs/adding-a-device.md](docs/adding-a-device.md). To report an unsupported device, run `optune devices --json --all` and open an issue with the output.
 
+## Legal
+
+Optune is free software, provided **without warranty**. It changes real settings on your devices — read the [Terms of Use](TERMS.md) before use.
+
+- [Privacy Policy](PRIVACY.md) — no accounts, no analytics; one optional update check to GitHub
+- [Terms of Use](TERMS.md)
+- [Trademarks and non-affiliation](TRADEMARKS.md) — Optune is independent and **not affiliated with or endorsed by Logitech or Apple**; product names belong to their owners
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [Security policy](SECURITY.md) — how to report a vulnerability (note: shell-command remaps run as you, so only import settings you trust)
+- [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+
 ## Credits & license
 
-Inspired by [Solaar](https://github.com/pwr-Solaar/Solaar) and [logitune](https://github.com/mmaher88/logitune); a clean-room implementation that shares no code with either. HID++ 2.0 was reverse-engineered by the Solaar, logiops and libratbag communities.
+Inspired by [Solaar](https://github.com/pwr-Solaar/Solaar) and [logitune](https://github.com/mmaher88/logitune); an independent implementation that shares no code with either. HID++ 2.0 was documented by the Solaar, logiops and libratbag communities.
 
 GPL-3.0-or-later — see [LICENSE](LICENSE).

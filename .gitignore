@@ -5,3 +5,12 @@ Package.resolved
 *.xcodeproj/
 .DS_Store
 *.swp
+
+# generated from root *.md by docs/site/gen_legal.py
+docs/site/pages/privacy.md
+docs/site/pages/terms.md
+docs/site/pages/trademarks.md
+docs/site/pages/third-party-notices.md
+docs/site/pages/security.md
+docs/site/pages/contributing.md
+docs/site/pages/code-of-conduct.md

@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 // scripts/generate_appicon.swift
 // Procedurally renders the Optune app icon as a CoreGraphics gradient
-// disc with a SF-style mouse glyph centered on top, then writes the
+// disc with a hand-drawn mouse glyph centered on top, then writes the
 // nine sizes Apple requires for a .iconset bundle.
 
 import AppKit
@@ -70,30 +70,38 @@ func renderIcon(size px: Int) -> NSImage {
         options: []
     )
 
-    // 3. SF-symbol "computermouse.fill" rendered white in the center.
-    if let symbol = NSImage(systemSymbolName: "computermouse.fill", accessibilityDescription: nil) {
-        let baseConfig = NSImage.SymbolConfiguration(pointSize: size * 0.55, weight: .semibold)
-        let whiteConfig = NSImage.SymbolConfiguration(paletteColors: [.white])
-        let configured = symbol
-            .withSymbolConfiguration(baseConfig.applying(whiteConfig)) ?? symbol
-        let glyphSize = configured.size
-        let glyphRect = NSRect(
-            x: (size - glyphSize.width) / 2,
-            y: (size - glyphSize.height) / 2,
-            width: glyphSize.width,
-            height: glyphSize.height
-        )
+    // 3. Original mouse glyph, drawn as plain paths (no SF Symbols — Apple's
+    //    licence doesn't allow symbols in app icons or logos).
+    let bodyW = size * 0.36
+    let bodyH = size * 0.54
+    let body = CGRect(x: (size - bodyW) / 2, y: (size - bodyH) / 2, width: bodyW, height: bodyH)
+    let bodyPath = CGPath(roundedRect: body, cornerWidth: bodyW / 2, cornerHeight: bodyW / 2, transform: nil)
 
-        // Drop-shadow under the glyph.
-        ctx.saveGState()
-        ctx.setShadow(
-            offset: CGSize(width: 0, height: -size * 0.015),
-            blur: size * 0.05,
-            color: CGColor(red: 0, green: 0, blue: 0, alpha: 0.35)
-        )
-        configured.draw(in: glyphRect, from: .zero, operation: .sourceOver, fraction: 1.0)
-        ctx.restoreGState()
-    }
+    ctx.saveGState()
+    ctx.setShadow(
+        offset: CGSize(width: 0, height: -size * 0.015),
+        blur: size * 0.05,
+        color: CGColor(red: 0, green: 0, blue: 0, alpha: 0.35)
+    )
+    ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.97))
+    ctx.addPath(bodyPath)
+    ctx.fillPath()
+    ctx.restoreGState()
+
+    let ink = CGColor(red: 0.10, green: 0.25, blue: 0.65, alpha: 1.0)
+    // Button split.
+    ctx.setStrokeColor(CGColor(red: 0.10, green: 0.25, blue: 0.65, alpha: 0.30))
+    ctx.setLineWidth(max(1, size * 0.012))
+    ctx.move(to: CGPoint(x: body.minX + bodyW * 0.05, y: body.maxY - bodyH * 0.42))
+    ctx.addLine(to: CGPoint(x: body.maxX - bodyW * 0.05, y: body.maxY - bodyH * 0.42))
+    ctx.strokePath()
+    // Scroll wheel.
+    let wheelW = bodyW * 0.14
+    let wheelH = bodyH * 0.17
+    let wheel = CGRect(x: size / 2 - wheelW / 2, y: body.maxY - bodyH * 0.12 - wheelH, width: wheelW, height: wheelH)
+    ctx.setFillColor(ink)
+    ctx.addPath(CGPath(roundedRect: wheel, cornerWidth: wheelW / 2, cornerHeight: wheelW / 2, transform: nil))
+    ctx.fillPath()
 
     image.unlockFocus()
     return image
