@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Battery insights
+- **Longer history**: battery samples now keep 14 days (deduplicated, capped at 2000) instead of the last 60.
+- **Estimates**: drain rate (%/hr), time remaining, last charged, and charge-session count, derived from the current discharge run (`BatteryInsights` in `OptuneCore`).
+- **Trend chart** with 24 h / 7 d / 14 d range on a real time axis.
+- **Per-device low-battery threshold** that overrides the app-wide value.
+
 ### Fixed — Docs
 - README CLI command list now covers the full surface (`fw`, `name`, `host`,
   `profile`, `wheel`, `speed`, `thumbwheel`, `reset`, `monitor`, `export`) and

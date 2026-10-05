@@ -27,18 +27,14 @@ struct DeviceSettings: Codable, Equatable {
     var nickname: String?
     /// Last-seen battery percentage; we keep a small ring buffer for the sparkline.
     var batteryHistory: [BatterySample]
+    /// Per-device low-battery alert threshold; falls back to the app-wide value when nil.
+    var lowBatteryThreshold: Int?
 
     init(productID: Int, serialNumber: String? = nil) {
         self.productID = productID
         self.serialNumber = serialNumber
         self.batteryHistory = []
     }
-}
-
-struct BatterySample: Codable, Equatable {
-    let timestamp: Date
-    let percent: Int
-    let charging: Bool
 }
 
 /// Top-level app preferences (notifications, login item).
@@ -164,19 +160,20 @@ final class SettingsStore {
         settings(for: device).batteryHistory
     }
 
-    /// Append a battery reading to this device's ring buffer (60 samples ≈ 1 hour
-    /// at 60 s polling). Auto-trims the buffer to the most recent 60.
+    /// Append a battery reading to this device's history. Unchanged readings are
+    /// collapsed and entries older than two weeks are pruned (see `BatteryHistoryPolicy`).
     func recordBattery(percent: Int, charging: Bool, for device: LogitechDevice) {
         update(for: device) { settings in
-            settings.batteryHistory.append(BatterySample(
-                timestamp: Date(),
-                percent: percent,
-                charging: charging
-            ))
-            if settings.batteryHistory.count > 60 {
-                settings.batteryHistory.removeFirst(settings.batteryHistory.count - 60)
-            }
+            settings.batteryHistory = BatteryHistoryPolicy.appending(
+                BatterySample(timestamp: Date(), percent: percent, charging: charging),
+                to: settings.batteryHistory
+            )
         }
+    }
+
+    /// Effective low-battery threshold for a device (per-device override, else global).
+    func lowBatteryThreshold(for device: LogitechDevice) -> Int {
+        settings(for: device).lowBatteryThreshold ?? app.lowBatteryThreshold
     }
 
     private func matches(_ stored: DeviceSettings, device: LogitechDevice) -> Bool {

@@ -458,29 +458,7 @@ private struct DeviceDetailCard: View {
                 }
             }
 
-            let samples = SettingsStore.shared.batteryHistory(for: device)
-            if samples.count >= 2 {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("Battery trend")
-                            .font(OptuneDesign.Typography.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        if let last = samples.last {
-                            Text(last.charging ? "↑ \(last.percent)%" : "\(last.percent)%")
-                                .font(OptuneDesign.Typography.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    BatterySparkline(samples: samples, height: 40)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color.primary.opacity(0.04))
-                        )
-                }
-            }
+            BatteryInsightsCard(device: device)
         }
         .padding(OptuneDesign.Spacing.xl)
         .background(

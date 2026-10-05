@@ -591,7 +591,7 @@ final class DeviceModel: ObservableObject {
                     deviceKey: key,
                     deviceLabel: label,
                     percent: Int(percent),
-                    threshold: store.app.lowBatteryThreshold,
+                    threshold: store.lowBatteryThreshold(for: device),
                     enabled: store.app.lowBatteryNotificationsEnabled
                 )
                 // Connection up event — battery readout means the device is talking.

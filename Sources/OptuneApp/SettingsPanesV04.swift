@@ -632,13 +632,18 @@ struct GeneralPane: View {
 struct BatterySparkline: View {
     let samples: [BatterySample]
     let height: CGFloat
+    /// Time window shown on the x-axis; nil spans the samples' own range.
+    var window: ClosedRange<Date>? = nil
 
     var body: some View {
         GeometryReader { geo in
             Canvas { ctx, size in
                 guard samples.count >= 2 else { return }
-                let xs = samples.enumerated().map { idx, _ in
-                    CGFloat(idx) / CGFloat(samples.count - 1) * size.width
+                let lo = window?.lowerBound ?? samples[0].timestamp
+                let hi = window?.upperBound ?? samples[samples.count - 1].timestamp
+                let span = max(hi.timeIntervalSince(lo), 1)
+                let xs = samples.map { sample in
+                    CGFloat(sample.timestamp.timeIntervalSince(lo) / span) * size.width
                 }
                 let ys = samples.map { sample in
                     (1 - CGFloat(sample.percent) / 100.0) * size.height
