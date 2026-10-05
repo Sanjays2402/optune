@@ -29,8 +29,8 @@ private struct Options {
     var size: CGSize {
         switch scene {
         case "menu":    return CGSize(width: 560, height: 700)
-        case "hero":    return CGSize(width: 1600, height: 880)
-        default:        return CGSize(width: 1240, height: 800)
+        case "hero":    return CGSize(width: 1600, height: 700)
+        default:        return CGSize(width: 1240, height: 760)
         }
     }
 }
@@ -186,8 +186,8 @@ private struct Hero: View {
     var body: some View {
         Wallpaper {
             ZStack(alignment: .topLeading) {
-                MockWindow(selected: "Devices", width: 1000, height: 690) { DevicesPane() }
-                    .offset(x: 540, y: 96)
+                MockWindow(selected: "Devices", width: 1000, height: 570) { DevicesPane() }
+                    .offset(x: 540, y: 80)
                 MenuMock()
                     .frame(width: 380)
                     .offset(x: 70, y: 56)
@@ -304,7 +304,7 @@ private struct MenuMock: View {
 private struct MockWindow<Content: View>: View {
     let selected: String
     var width: CGFloat = 1080
-    var height: CGFloat = 700
+    var height: CGFloat = 640
     @Environment(\.colorScheme) private var scheme
     @ViewBuilder let content: () -> Content
 
@@ -439,7 +439,7 @@ private struct PointerCards: View {
                     Button("Add current DPI") {}.buttonStyle(.ghost)
                     Button("Reset to defaults") {}.buttonStyle(.ghost(tint: .secondary))
                     Spacer()
-                    Text("⌃⌥D").font(OptuneDesign.Typography.mono).foregroundStyle(.secondary)
+                    Text("⌃⌥D").font(OptuneDesign.Typography.value).foregroundStyle(.secondary)
                     MockToggle()
                 }
             }
