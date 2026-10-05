@@ -17,6 +17,8 @@ struct DeviceSettings: Codable, Equatable {
     var wheelInverted: Bool?
     /// Per-CID button remap bindings (HID++ 0x1B04 + CGEventTap dispatch).
     var remapBindings: [RemapBinding]?
+    /// Gesture-button swipe bindings (hold + drag), one per CID and direction.
+    var gestureBindings: [GestureBinding]?
     /// Whether to engage ratchet on connect (only meaningful for HiResWheel-capable devices).
     var wheelRatchet: Bool?
     /// Whether to divert the side thumb wheel via 0x2150 (silences/captures it on macOS).

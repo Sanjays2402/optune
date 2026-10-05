@@ -260,10 +260,14 @@ final class DeviceModel: ObservableObject {
         if !appearing.isEmpty {
             for device in next where appearing.contains(device.productID) {
                 let persisted = store.settings(for: device).remapBindings ?? []
-                if !persisted.isEmpty {
+                let persistedGestures = store.settings(for: device).gestureBindings ?? []
+                if !persisted.isEmpty || !persistedGestures.isEmpty {
                     var map: [UInt16: RemapAction] = [:]
                     for b in persisted { map[b.cid] = b.action }
                     self.remapBindings = map
+                    var gmap: [UInt16: [GestureDirection: RemapAction]] = [:]
+                    for g in persistedGestures { gmap[g.cid, default: [:]][g.direction] = g.action }
+                    self.gestureActions = gmap
                     Task { [weak self] in await self?.reconcileRemapEngine(for: device) }
                 }
             }
@@ -439,6 +443,31 @@ final class DeviceModel: ObservableObject {
     private var remapEngine: RemapEngine?
     private var remapTransport: HIDPPTransport?
 
+    /// Swipe actions per gesture-capable CID (UI + persistence mirror).
+    @Published private(set) var gestureActions: [UInt16: [GestureDirection: RemapAction]] = [:]
+
+    func gestureAction(for cid: UInt16, _ direction: GestureDirection) -> RemapAction {
+        gestureActions[cid]?[direction] ?? .none
+    }
+
+    /// Set or clear one swipe direction of a gesture button.
+    func setGesture(cid: UInt16, direction: GestureDirection, action: RemapAction) {
+        if action == .none {
+            gestureActions[cid]?.removeValue(forKey: direction)
+            if gestureActions[cid]?.isEmpty == true { gestureActions.removeValue(forKey: cid) }
+        } else {
+            gestureActions[cid, default: [:]][direction] = action
+        }
+        Task { [weak self] in
+            guard let self, let device = self.primaryDevice else { return }
+            let list = self.gestureActions.flatMap { cid, dirs in
+                dirs.map { GestureBinding(cid: cid, direction: $0.key, action: $0.value) }
+            }
+            self.store.update(for: device) { $0.gestureBindings = list.isEmpty ? nil : list }
+            await self.reconcileRemapEngine(for: device)
+        }
+    }
+
     /// Look up the current action for a CID (UI helper).
     func remapAction(for cid: UInt16) -> RemapAction? {
         remapBindings[cid]
@@ -469,7 +498,8 @@ final class DeviceModel: ObservableObject {
     /// to call multiple times. Pulls the persisted bindings from store.
     private func reconcileRemapEngine(for device: LogitechDevice) async {
         let bindings = store.settings(for: device).remapBindings ?? []
-        let nonEmpty = bindings.contains { $0.action != .none }
+        let gestureBindings = store.settings(for: device).gestureBindings ?? []
+        let nonEmpty = bindings.contains { $0.action != .none } || !gestureBindings.isEmpty
 
         // Tear down if there are no active bindings.
         guard nonEmpty else {
@@ -498,7 +528,7 @@ final class DeviceModel: ObservableObject {
         if remapEngine == nil {
             remapEngine = RemapEngine(transport: transport)
         }
-        await remapEngine?.apply(bindings: bindings, featureIndex: lookup.featureIndex)
+        await remapEngine?.apply(bindings: bindings, gestures: gestureBindings, featureIndex: lookup.featureIndex)
     }
 
     var recognizedDevices: [LogitechDevice] {

@@ -910,7 +910,40 @@ private struct ButtonRow: View {
     let control: DeviceTelemetry.SerializableControl
     @EnvironmentObject private var model: DeviceModel
 
+    private var supportsGestures: Bool {
+        control.isReprogrammable && ReprogControlsV4Feature.gestureCIDs.contains(control.cid)
+    }
+
     var body: some View {
+        VStack(spacing: 0) {
+            row
+            if supportsGestures {
+                VStack(spacing: 6) {
+                    Text("Hold and swipe — a plain press still uses the action above.")
+                        .font(OptuneDesign.Typography.caption)
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(GestureDirection.allCases, id: \.self) { dir in
+                        HStack {
+                            Image(systemName: "arrow.\(dir.rawValue)")
+                                .frame(width: 18)
+                                .foregroundStyle(.secondary)
+                            Text("Swipe \(dir.label)").font(OptuneDesign.Typography.body)
+                            Spacer()
+                            ActionPicker(current: model.gestureAction(for: control.cid, dir)) {
+                                model.setGesture(cid: control.cid, direction: dir, action: $0)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, OptuneDesign.Spacing.lg - 2)
+                .padding(.leading, 36)
+                .padding(.bottom, 10)
+            }
+        }
+    }
+
+    private var row: some View {
         HStack(spacing: OptuneDesign.Spacing.md) {
             ZStack {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -943,48 +976,8 @@ private struct ButtonRow: View {
         model.remapAction(for: control.cid) ?? .none
     }
 
-    @ViewBuilder
     private var remapMenu: some View {
-        Menu {
-            Button("Disabled") { model.setRemap(cid: control.cid, action: .none) }
-            // Catalog-driven sections — replaces the old hardcoded list of
-            // 5 keystroke presets / 4 swipes / 3 apps. Each category becomes
-            // a labeled `Section`, each entry becomes a `Button`. Mirrors
-            // Mouser's categorized action picker pattern.
-            ForEach(ActionCatalog.shared.groupedByCategory, id: \.0) { (category, items) in
-                Section(category.rawValue) {
-                    ForEach(items) { entry in
-                        Button {
-                            model.setRemap(cid: control.cid, action: entry.action)
-                        } label: {
-                            Label(entry.label, systemImage: entry.symbol)
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(currentAction.displayName)
-                    .font(OptuneDesign.Typography.caption)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.accentColor.opacity(currentAction == .none ? 0.05 : 0.18))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Color.accentColor.opacity(currentAction == .none ? 0.10 : 0.30), lineWidth: 0.5)
-            )
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        ActionPicker(current: currentAction) { model.setRemap(cid: control.cid, action: $0) }
     }
 
     private var symbol: String {
@@ -1251,4 +1244,55 @@ struct FlowLayout: Layout {
             lineHeight = max(lineHeight, size.height)
         }
     }
+}
+
+/// Categorized action menu shared by button rows and gesture directions.
+private struct ActionPicker: View {
+    let current: RemapAction
+    let onSelect: (RemapAction) -> Void
+
+    @ViewBuilder
+    var body: some View {
+        Menu {
+            Button("Disabled") { onSelect(.none) }
+            // Catalog-driven sections — replaces the old hardcoded list of
+            // 5 keystroke presets / 4 swipes / 3 apps. Each category becomes
+            // a labeled `Section`, each entry becomes a `Button`. Mirrors
+            // Mouser's categorized action picker pattern.
+            ForEach(ActionCatalog.shared.groupedByCategory, id: \.0) { (category, items) in
+                Section(category.rawValue) {
+                    ForEach(items) { entry in
+                        Button {
+                            onSelect(entry.action)
+                        } label: {
+                            Label(entry.label, systemImage: entry.symbol)
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(current.displayName)
+                    .font(OptuneDesign.Typography.caption)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.accentColor.opacity(current == .none ? 0.05 : 0.18))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(Color.accentColor.opacity(current == .none ? 0.10 : 0.30), lineWidth: 0.5)
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
 }

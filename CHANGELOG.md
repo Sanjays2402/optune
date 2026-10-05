@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Gesture remaps
+- Gesture buttons (CIDs 0x00C3 / 0x00D7 / 0x00ED) now support hold-and-swipe: one action each for
+  up / down / left / right, set from the Buttons pane. A plain press still fires the button's own action.
+- Raw-XY diversion + `GestureRecognizer` (in `OptuneCore`) classify the drag on release; gestures persist per device.
+
 ### Added — Battery insights
 - **Longer history**: battery samples now keep 14 days (deduplicated, capped at 2000) instead of the last 60.
 - **Estimates**: drain rate (%/hr), time remaining, last charged, and charge-session count, derived from the current discharge run (`BatteryInsights` in `OptuneCore`).

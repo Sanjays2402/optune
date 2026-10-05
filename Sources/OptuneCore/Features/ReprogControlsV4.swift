@@ -176,6 +176,18 @@ public enum ReprogControlsV4Feature {
         return ButtonEvent(pressedCIDs: pressed)
     }
 
+    /// Decode a raw-XY notification (fn 0x1): signed 16-bit big-endian dx, dy.
+    public static func decodeRawXYEvent(_ event: HIDPPResponse) -> (dx: Int, dy: Int)? {
+        guard event.swID == 0, event.function == 0x1, event.params.count >= 4 else { return nil }
+        let p = event.params
+        let dx = Int(Int16(bitPattern: (UInt16(p[0]) << 8) | UInt16(p[1])))
+        let dy = Int(Int16(bitPattern: (UInt16(p[2]) << 8) | UInt16(p[3])))
+        return (dx, dy)
+    }
+
+    /// CIDs that act as gesture buttons (hold + drag).
+    public static let gestureCIDs: Set<UInt16> = [0x00C3, 0x00D7, 0x00ED]
+
     /// Walk Root → ReprogControlsV4 → enumerate every control. Capped at 32.
     public static func snapshot(
         on transport: HIDPPTransport,

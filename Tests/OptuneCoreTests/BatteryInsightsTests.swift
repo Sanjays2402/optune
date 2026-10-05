@@ -47,3 +47,29 @@ final class BatteryInsightsTests: XCTestCase {
         XCTAssertEqual(BatteryInsights.formatRemaining(hours: 0.5), "~30 min")
     }
 }
+
+final class GestureRecognizerTests: XCTestCase {
+    func test_tapWhenTravelBelowThreshold() {
+        var g = GestureRecognizer(threshold: 50)
+        g.begin(); g.move(dx: 10, dy: -8)
+        XCTAssertEqual(g.end(), .tap)
+    }
+
+    func test_directions() {
+        func run(_ dx: Int, _ dy: Int) -> GestureRecognizer.Result? {
+            var g = GestureRecognizer(threshold: 50)
+            g.begin(); g.move(dx: dx / 2, dy: dy / 2); g.move(dx: dx - dx / 2, dy: dy - dy / 2)
+            return g.end()
+        }
+        XCTAssertEqual(run(120, 10), .swipe(.right))
+        XCTAssertEqual(run(-120, 10), .swipe(.left))
+        XCTAssertEqual(run(5, -90), .swipe(.up))
+        XCTAssertEqual(run(5, 90), .swipe(.down))
+    }
+
+    func test_endWithoutBeginIsNil_andMovesIgnored() {
+        var g = GestureRecognizer()
+        g.move(dx: 500, dy: 0)
+        XCTAssertNil(g.end())
+    }
+}

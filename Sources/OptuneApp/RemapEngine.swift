@@ -103,6 +103,19 @@ public struct RemapBinding: Codable, Equatable, Sendable {
     }
 }
 
+/// Per-CID gesture entry: one action per swipe direction (a plain tap uses the
+/// CID's regular `RemapBinding`).
+public struct GestureBinding: Codable, Equatable, Sendable {
+    public var cid: UInt16
+    public var direction: GestureDirection
+    public var action: RemapAction
+    public init(cid: UInt16, direction: GestureDirection, action: RemapAction) {
+        self.cid = cid
+        self.direction = direction
+        self.action = action
+    }
+}
+
 /// Runtime engine that subscribes to HID++ button events on a transport,
 /// debounces edge-trigger semantics (only fires on rising edge), and
 /// dispatches the bound `RemapAction`.
@@ -117,6 +130,9 @@ final class RemapEngine {
     private var subToken: UInt64?
     private var lastPressed: Set<UInt16> = []
     private var bindings: [UInt16: RemapAction] = [:]
+    private var gestures: [UInt16: [GestureDirection: RemapAction]] = [:]
+    private var recognizer = GestureRecognizer()
+    private var activeGestureCID: UInt16?
     private let dispatchQueue = DispatchQueue(label: "io.github.sanjays2402.optune.remap", qos: .userInitiated)
 
     /// Initialize against a live transport and apply the initial bindings.
@@ -126,21 +142,25 @@ final class RemapEngine {
 
     /// Replace the binding map and reconcile firmware divert flags. CIDs that
     /// have any non-`.none` binding get diverted; otherwise they're cleared.
-    func apply(bindings: [RemapBinding], featureIndex: UInt8) async {
+    func apply(bindings: [RemapBinding], gestures gestureBindings: [GestureBinding] = [], featureIndex: UInt8) async {
         var map: [UInt16: RemapAction] = [:]
         for b in bindings { map[b.cid] = b.action }
         self.bindings = map
+        var gmap: [UInt16: [GestureDirection: RemapAction]] = [:]
+        for g in gestureBindings where g.action != .none { gmap[g.cid, default: [:]][g.direction] = g.action }
+        self.gestures = gmap
 
         // Reconcile: get every control, divert the bound ones, un-divert the rest.
         do {
             let controls = (try? await ReprogControlsV4Feature.snapshot(on: transport)) ?? []
             for control in controls where control.isReprogrammable {
                 let action = map[control.cid]
-                let wantDiverted = action != nil && action != .some(.none)
+                let hasGestures = gmap[control.cid] != nil
+                let wantDiverted = hasGestures || (action != nil && action != .some(.none))
                 _ = try? await ReprogControlsV4Feature.setReporting(
                     on: transport,
                     featureIndex: featureIndex,
-                    reporting: .init(cid: control.cid, diverted: wantDiverted)
+                    reporting: .init(cid: control.cid, diverted: wantDiverted, rawXYDiverted: hasGestures)
                 )
             }
         }
@@ -149,8 +169,11 @@ final class RemapEngine {
         if subToken == nil {
             subToken = transport.addEventSubscriber { [weak self] response in
                 guard let self else { return }
-                guard let event = ReprogControlsV4Feature.decodeButtonEvent(response) else { return }
-                Task { @MainActor in self.handle(event: event) }
+                if let event = ReprogControlsV4Feature.decodeButtonEvent(response) {
+                    Task { @MainActor in self.handle(event: event) }
+                } else if let xy = ReprogControlsV4Feature.decodeRawXYEvent(response) {
+                    Task { @MainActor in self.recognizer.move(dx: xy.dx, dy: xy.dy) }
+                }
             }
         }
     }
@@ -170,14 +193,33 @@ final class RemapEngine {
             )
         }
         bindings.removeAll()
+        gestures.removeAll()
+        activeGestureCID = nil
         lastPressed.removeAll()
     }
 
     private func handle(event: ReprogControlsV4Feature.ButtonEvent) {
         // Rising edge: CIDs in `pressedCIDs` that weren't there before.
         let rising = event.pressedCIDs.subtracting(lastPressed)
+        let falling = lastPressed.subtracting(event.pressedCIDs)
         lastPressed = event.pressedCIDs
+        if let active = activeGestureCID, falling.contains(active) {
+            activeGestureCID = nil
+            switch recognizer.end() {
+            case .swipe(let dir)?:
+                if let action = gestures[active]?[dir] { fire(action: action) }
+            case .tap?:
+                if let action = bindings[active], action != .none { fire(action: action) }
+            case nil:
+                break
+            }
+        }
         for cid in rising {
+            if gestures[cid] != nil {
+                activeGestureCID = cid
+                recognizer.begin()
+                continue
+            }
             guard let action = bindings[cid], action != .none else { continue }
             fire(action: action)
         }
