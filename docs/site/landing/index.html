@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Optune — the open-source Logitech Options+ replacement for macOS</title>
+  <meta name="description" content="Native Swift 6 menu bar app for Logitech MX mice and keyboards: battery insights, DPI stages, gestures, button remapping. No account, no telemetry.">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Optune — Logitech control for macOS">
+  <meta property="og:description" content="Open-source, native, glassy. Battery insights, DPI stages, gestures and remapping for Logitech MX devices.">
+  <meta property="og:image" content="https://sanjays2402.github.io/optune/img/hero-light.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="docs/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=JetBrains+Mono:wght@400..600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f6ff; --ink: #0c0f1d; --muted: #4d5470; --card: rgba(255,255,255,.62);
+      --card-line: rgba(255,255,255,.85); --line: rgba(20,30,70,.10); --accent: #0a74ff;
+      --shadow: 0 30px 80px -20px rgba(60,40,160,.35); --code: rgba(12,15,29,.06);
+      --orb1: #4ab4ff; --orb2: #a98bff; --orb3: #ff7ac0; --orb4: #4fe3cf; --orb-o: .55;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #070916; --ink: #f4f6ff; --muted: #a2a9c6; --card: rgba(255,255,255,.06);
+        --card-line: rgba(255,255,255,.14); --line: rgba(255,255,255,.10); --accent: #3b95ff;
+        --shadow: 0 30px 90px -20px rgba(0,0,0,.7); --code: rgba(255,255,255,.07);
+        --orb1: #1478ff; --orb2: #8a4dff; --orb3: #ff2f86; --orb4: #11c2b0; --orb-o: .5;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 400 17px/1.55 Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    .aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+    .aurora i { position: absolute; border-radius: 50%; filter: blur(110px); opacity: var(--orb-o); }
+    .aurora i:nth-child(1) { width: 55vw; height: 55vw; background: var(--orb1); left: -12vw; top: -18vw; }
+    .aurora i:nth-child(2) { width: 50vw; height: 50vw; background: var(--orb2); right: -14vw; top: -6vw; }
+    .aurora i:nth-child(3) { width: 45vw; height: 45vw; background: var(--orb3); left: 8vw; top: 70vh; opacity: calc(var(--orb-o) * .8); }
+    .aurora i:nth-child(4) { width: 40vw; height: 40vw; background: var(--orb4); right: -6vw; top: 85vh; opacity: calc(var(--orb-o) * .8); }
+
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    nav.top {
+      position: sticky; top: 14px; z-index: 10; margin: 14px auto 0; max-width: 1120px; padding: 0 24px;
+    }
+    nav.top .bar {
+      display: flex; align-items: center; gap: 22px; padding: 10px 14px 10px 16px; border-radius: 999px;
+      background: var(--card); border: 1px solid var(--card-line);
+      backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+      box-shadow: 0 10px 30px -12px rgba(30,30,90,.25);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; }
+    .brand .mark {
+      width: 26px; height: 26px; border-radius: 8px;
+      background: linear-gradient(160deg, #3aa0ff, #0a5fe0); box-shadow: 0 4px 12px rgba(10,100,255,.5), inset 0 0 0 1px rgba(255,255,255,.35);
+      display: grid; place-items: center;
+    }
+    .brand .mark::after { content: ""; width: 8px; height: 12px; border-radius: 5px; background: #fff; }
+    nav.top .links { margin-left: auto; display: flex; gap: 22px; font-size: 15px; color: var(--muted); font-weight: 500; }
+    nav.top .links a:hover { color: var(--ink); }
+    @media (max-width: 640px) { nav.top .links a:not(.btn) { display: none; } }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px;
+      font-weight: 600; font-size: 15px; border: 1px solid var(--card-line); background: var(--card);
+      backdrop-filter: blur(16px); transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary {
+      color: #fff; border-color: rgba(255,255,255,.35);
+      background: linear-gradient(180deg, #3b9bff, #0a68ee); box-shadow: 0 10px 28px -8px rgba(10,110,255,.7);
+    }
+    .btn.lg { padding: 14px 26px; font-size: 17px; }
+
+    header.hero { text-align: center; padding: 84px 0 40px; }
+    .pill {
+      display: inline-flex; gap: 8px; align-items: center; padding: 6px 14px; border-radius: 999px; font-size: 14px;
+      font-weight: 600; color: var(--muted); background: var(--card); border: 1px solid var(--card-line);
+    }
+    .pill b { color: var(--accent); }
+    h1 {
+      font-size: clamp(42px, 7vw, 82px); line-height: 1.02; letter-spacing: -.035em; font-weight: 800; margin: 22px auto 18px; max-width: 880px;
+    }
+    h1 em { font-style: normal; background: linear-gradient(95deg, #1e8bff, #8a5cff 55%, #ff4f9a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { font-size: clamp(18px, 2.2vw, 22px); color: var(--muted); max-width: 680px; margin: 0 auto 32px; }
+    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .brew {
+      margin: 22px auto 0; display: inline-flex; gap: 12px; align-items: center; padding: 10px 16px; border-radius: 14px;
+      background: var(--code); font: 500 14px "JetBrains Mono", monospace; color: var(--muted); border: 1px solid var(--line);
+    }
+    .brew b { color: var(--ink); font-weight: 500; }
+
+    .shot {
+      margin: 56px auto 0; border-radius: 22px; padding: 10px; background: var(--card); border: 1px solid var(--card-line);
+      box-shadow: var(--shadow); backdrop-filter: blur(20px);
+    }
+    .shot img { display: block; width: 100%; height: auto; border-radius: 14px; }
+    .dark-only { display: none; } .light-only { display: block; }
+    @media (prefers-color-scheme: dark) { .dark-only { display: block; } .light-only { display: none; } }
+
+    section { padding: 84px 0 0; }
+    .eyebrow { font: 700 13px Inter; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+    h2 { font-size: clamp(30px, 4.4vw, 48px); letter-spacing: -.03em; line-height: 1.08; margin: 10px 0 14px; font-weight: 800; }
+    .lead { color: var(--muted); max-width: 640px; font-size: 19px; margin: 0 0 36px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    .card {
+      padding: 26px; border-radius: 24px; background: var(--card); border: 1px solid var(--card-line);
+      backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+      box-shadow: 0 18px 50px -24px rgba(40,30,120,.35);
+    }
+    .card .ico {
+      width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 22px; margin-bottom: 16px;
+      background: linear-gradient(160deg, rgba(255,255,255,.55), rgba(255,255,255,.08)); border: 1px solid var(--card-line);
+    }
+    .card h3 { margin: 0 0 8px; font-size: 20px; letter-spacing: -.015em; }
+    .card p { margin: 0; color: var(--muted); font-size: 16px; }
+
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; }
+    @media (max-width: 520px) { .gallery { grid-template-columns: 1fr; } }
+    figure { margin: 0; }
+    figure .frame { padding: 8px; border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--shadow); }
+    figure img { display: block; width: 100%; border-radius: 13px; }
+    figcaption { margin: 12px 4px 0; color: var(--muted); font-size: 15px; }
+    figcaption b { color: var(--ink); }
+
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    pre {
+      margin: 12px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--code); border: 1px solid var(--line);
+      font: 500 14px/1.6 "JetBrains Mono", monospace; overflow-x: auto; color: var(--ink);
+    }
+    .muted { color: var(--muted); }
+    kbd { font: 600 13px Inter; padding: 2px 7px; border-radius: 6px; background: var(--code); border: 1px solid var(--line); }
+
+    footer { padding: 90px 0 56px; color: var(--muted); font-size: 15px; text-align: center; }
+    footer .links { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+    footer a:hover { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <nav class="top">
+    <div class="bar">
+      <a class="brand" href="#top"><span class="mark"></span>Optune</a>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#screens">Screenshots</a>
+        <a href="#install">Install</a>
+        <a href="docs/">Docs</a>
+        <a href="https://github.com/Sanjays2402/optune">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero wrap">
+      <span class="pill"><b>v0.7</b> Glass UI · battery insights · gestures</span>
+      <h1>Your Logitech mouse, <em>finally native.</em></h1>
+      <p class="sub">Optune is the open-source Options+ replacement for macOS — battery, DPI, SmartShift, gestures and button remapping from one beautiful menu bar app. No account. No telemetry. No daemons.</p>
+      <div class="cta">
+        <a class="btn primary lg" href="https://github.com/Sanjays2402/optune/releases/latest">Download for macOS</a>
+        <a class="btn lg" href="docs/">Read the docs</a>
+      </div>
+      <div class="brew"><span>$</span><b>brew install --cask sanjays2402/optune/optune</b></div>
+
+      <div class="shot">
+        <img class="light-only" src="img/hero-light.png" alt="Optune menu bar dropdown and settings window on macOS" width="2000" height="700">
+        <img class="dark-only" src="img/hero-dark.png" alt="Optune menu bar dropdown and settings window in dark mode" width="2000" height="700">
+      </div>
+    </header>
+
+    <section id="features" class="wrap">
+      <div class="eyebrow">Features</div>
+      <h2>Everything Options+ does.<br>Nothing it shouldn’t.</h2>
+      <p class="lead">Talks HID++ straight to your device over IOKit — no kernel extensions, no background service, no sign-in.</p>
+      <div class="grid">
+        <div class="card"><div class="ico">🔋</div><h3>Battery insights</h3><p>14 days of history, drain rate, time-remaining estimates and a per-device low-battery alert.</p></div>
+        <div class="card"><div class="ico">🎯</div><h3>DPI stages</h3><p>Save up to six stages, switch from the menu bar in a click, or cycle with <kbd>⌃⌥D</kbd> from anywhere.</p></div>
+        <div class="card"><div class="ico">🖐</div><h3>Gesture button</h3><p>Hold the thumb button and swipe up, down, left or right — each direction runs its own action.</p></div>
+        <div class="card"><div class="ico">🧭</div><h3>Button remapping</h3><p>Keystrokes, media keys, Mission Control, apps, shell commands and device modes on any control.</p></div>
+        <div class="card"><div class="ico">🪟</div><h3>Per-app profiles</h3><p>DPI and SmartShift follow the app you’re in — Figma, Xcode, Final Cut, whatever you use.</p></div>
+        <div class="card"><div class="ico">⌨️</div><h3>Hosts &amp; keyboard</h3><p>See paired hosts, switch Easy-Switch slots, control backlight and Fn-lock.</p></div>
+      </div>
+    </section>
+
+    <section id="screens" class="wrap">
+      <div class="eyebrow">Screenshots</div>
+      <h2>Glass, all the way down.</h2>
+      <p class="lead">Layered Liquid Glass surfaces and an ambient backdrop — native glass on macOS 26, a faithful material look on macOS 15.</p>
+      <div class="gallery">
+        <figure><div class="frame"><img src="img/menu-dark.png" alt="Menu bar dropdown" loading="lazy"></div><figcaption><b>Menu bar</b> — live telemetry and one-click DPI stages.</figcaption></figure>
+        <figure><div class="frame"><img src="img/pointer-light.png" alt="Pointer settings" loading="lazy"></div><figcaption><b>Pointer</b> — sensitivity, saved stages, hotkey, SmartShift.</figcaption></figure>
+        <figure><div class="frame"><img src="img/battery-dark.png" alt="Battery trend" loading="lazy"></div><figcaption><b>Battery</b> — trend, drain rate and time remaining.</figcaption></figure>
+        <figure><div class="frame"><img src="img/buttons-dark.png" alt="Buttons and gestures" loading="lazy"></div><figcaption><b>Buttons</b> — remaps and gesture swipes.</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="install" class="wrap">
+      <div class="eyebrow">Install</div>
+      <h2>Up and running in a minute.</h2>
+      <p class="lead">Requires macOS 15 or later. Grant Input Monitoring (and Accessibility for remaps) when asked.</p>
+      <div class="steps">
+        <div class="card"><h3>Homebrew</h3><p class="muted">Recommended — stays up to date.</p>
+<pre>brew tap sanjays2402/optune
+brew install --cask optune</pre></div>
+        <div class="card"><h3>Manual</h3><p class="muted">Grab the DMG, drag Optune to Applications. First launch: right-click → Open (ad-hoc signed).</p>
+<pre><a href="https://github.com/Sanjays2402/optune/releases/latest">github.com/Sanjays2402/optune/releases</a></pre></div>
+        <div class="card"><h3>CLI</h3><p class="muted">Script your mouse; most commands accept <code>--json</code>.</p>
+<pre>$ optune battery
+MX Master 3S — 78%, discharging
+$ optune dpi 6400</pre></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <div class="links">
+      <a href="docs/">Documentation</a>
+      <a href="https://github.com/Sanjays2402/optune">Source</a>
+      <a href="https://github.com/Sanjays2402/optune/releases">Releases</a>
+      <a href="https://github.com/Sanjays2402/optune/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/Sanjays2402/optune/issues">Issues</a>
+    </div>
+    Optune is free and open source under GPL-3.0-or-later. Not affiliated with Logitech.
+  </footer>
+</body>
+</html>

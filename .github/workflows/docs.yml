@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/site/**"
+      - "docs/screenshots/**"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -25,13 +26,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Build site
+      - name: Build docs
         working-directory: docs/site
         run: python build.py
+      - name: Assemble site (landing page at /, docs at /docs/)
+        run: |
+          mkdir -p _site/docs _site/img
+          cp -R docs/site/dist/. _site/docs/
+          cp -R docs/site/landing/. _site/
+          for f in hero-light hero-dark menu-dark pointer-light battery-dark buttons-dark; do
+            cp "docs/screenshots/$f.png" _site/img/
+          done
+          touch _site/.nojekyll
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/site/dist
+          path: _site
 
   deploy:
     needs: build
