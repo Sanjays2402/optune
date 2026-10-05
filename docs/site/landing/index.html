@@ -75,10 +75,10 @@
     h2 { font: 500 clamp(30px, 4vw, 42px)/1.12 Fraunces, Georgia, serif; letter-spacing: -.02em; margin: 10px 0 36px; max-width: 640px; }
 
     .rows { border-top: 1px solid var(--rule); }
-    .row { display: grid; grid-template-columns: 200px 1fr 90px; gap: 28px; padding: 22px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+    .row { display: grid; grid-template-columns: 170px 1fr 200px; gap: 28px; padding: 22px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
     .row h3 { margin: 0; font: 600 18px Fraunces, Georgia, serif; }
     .row p { margin: 0; color: var(--muted); }
-    .row code { font: 400 13px "JetBrains Mono", monospace; color: var(--muted); text-align: right; }
+    .row code { font: 400 13px "JetBrains Mono", monospace; color: var(--muted); text-align: right; white-space: nowrap; }
     @media (max-width: 700px) {
       .row { grid-template-columns: 1fr; gap: 6px; }
       .row code { text-align: left; }
