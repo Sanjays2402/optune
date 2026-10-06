@@ -125,6 +125,12 @@ public struct MouseMapView: View {
 private struct Key<S: Shape>: View {
     let shape: S
     var body: some View {
+        // wall under the cap so it stands proud of the shell
+        shape.fill(Color.black.opacity(0.75)).offset(x: 0.8, y: 2.2)
+            .overlay(content)
+    }
+
+    private var content: some View {
         shape
             .fill(LinearGradient(colors: [Color(white: 0.34), Color(white: 0.12)], startPoint: .top, endPoint: .bottom))
             .overlay(shape.stroke(LinearGradient(colors: [.white.opacity(0.5), .white.opacity(0.03)],
@@ -144,18 +150,28 @@ struct MouseArt: View {
             let dark = scheme == .dark
             ZStack {
                 // Ground shadow: a tight contact shadow plus a wide ambient one.
-                MouseBody().fill(Color.black.opacity(dark ? 0.55 : 0.30)).blur(radius: s * 0.05).offset(x: s * 0.012, y: s * 0.05)
-                MouseBody().fill(Color.black.opacity(dark ? 0.45 : 0.25)).blur(radius: s * 0.012).offset(y: s * 0.012)
+                MouseBody().fill(Color.black.opacity(dark ? 0.60 : 0.34)).blur(radius: s * 0.06).offset(x: s * 0.02, y: s * 0.085)
+                MouseBody().fill(Color.black.opacity(dark ? 0.50 : 0.28)).blur(radius: s * 0.014).offset(x: s * 0.006, y: s * 0.03)
 
-                // Shell
+                // Side wall: stacked copies of the outline, stepping down and to the right, so the
+                // shell has visible thickness. Lit near the top edge, dark toward the desk.
+                ForEach((1...18).reversed(), id: \.self) { i in
+                    let t = Double(i) / 18
+                    MouseBody()
+                        .fill(Color(white: (dark ? 0.20 : 0.34) * (1 - 0.82 * t)))
+                        .offset(x: s * 0.0011 * CGFloat(i), y: s * 0.0042 * CGFloat(i))
+                }
+
+                // Shell: a dome — bright crest up and to the left, falling off to the lower right.
                 MouseBody()
                     .fill(LinearGradient(
                         stops: [
-                            .init(color: Color(white: dark ? 0.38 : 0.55), location: 0.0),
-                            .init(color: Color(white: dark ? 0.22 : 0.36), location: 0.45),
-                            .init(color: Color(white: dark ? 0.10 : 0.20), location: 1.0),
+                            .init(color: Color(white: dark ? 0.46 : 0.62), location: 0.0),
+                            .init(color: Color(white: dark ? 0.27 : 0.42), location: 0.38),
+                            .init(color: Color(white: dark ? 0.12 : 0.22), location: 0.80),
+                            .init(color: Color(white: dark ? 0.06 : 0.14), location: 1.0),
                         ],
-                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                        startPoint: UnitPoint(x: 0.15, y: 0.05), endPoint: UnitPoint(x: 0.95, y: 0.98)))
 
                 // Inner shadow around the edge gives the shell volume.
                 MouseBody()
@@ -174,6 +190,21 @@ struct MouseArt: View {
                     .rotationEffect(.degrees(-22))
                     .offset(x: -s * 0.08, y: -s * 0.02)
                     .mask(MouseBody())
+
+                // Softbox reflection on the dome
+                RoundedRectangle(cornerRadius: s * 0.12, style: .continuous)
+                    .fill(LinearGradient(colors: [.white.opacity(dark ? 0.22 : 0.30), .white.opacity(0.0)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .frame(width: s * 0.26, height: s * 0.34)
+                    .rotationEffect(.degrees(-14))
+                    .blur(radius: s * 0.012)
+                    .position(pt(0.60, 0.26, s))
+                    .mask(MouseBody())
+                // A thin bright edge where the dome meets the wall, lower right.
+                MouseBody()
+                    .stroke(LinearGradient(colors: [.clear, .white.opacity(0.0), .white.opacity(0.35)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
+                    .blur(radius: 0.6)
 
                 // Rim light
                 MouseBody()
