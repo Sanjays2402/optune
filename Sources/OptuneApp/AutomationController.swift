@@ -1,6 +1,8 @@
 import AppKit
 import Combine
+import SwiftUI
 import OptuneCore
+import OptuneUI
 
 /// Scriptable entry points: Easy-Switch hotkeys (⌃⌥1/2/3) and the `optune://` URL scheme
 /// (usable from Shortcuts' "Open URL" action, `open`, or AppleScript). Both are opt-in.
