@@ -2,7 +2,7 @@ import Foundation
 import OptuneCore
 
 /// Persistent per-device preferences that should survive app relaunch.
-/// Stored as JSON at `~/Library/Application Support/Optune/devices.json`.
+/// Stored as JSON at `~/Library/Application Support/Optune/settings.json`.
 struct DeviceSettings: Codable, Equatable {
     var productID: Int
     var serialNumber: String?
@@ -69,6 +69,9 @@ struct OptuneAppSettings: Codable, Equatable {
     var hostHotkeysEnabled: Bool = false
     /// Whether `optune://` URLs may control the device (off by default — any web page can open a URL).
     var urlSchemeEnabled: Bool = false
+    /// Automatic settings backup to a user-chosen folder.
+    var backupEnabled: Bool = false
+    var backupFolderPath: String?
 
     init() {}
 
@@ -77,7 +80,7 @@ struct OptuneAppSettings: Codable, Equatable {
         case connectionNotificationsEnabled, hostSwitchNotificationsEnabled
         case launchAtLogin, autoApplyOnReconnect
         case appProfilesEnabled, appProfiles, autoUpdateEnabled, welcomeCompleted, dpiHotkeyEnabled
-        case hostHotkeysEnabled, urlSchemeEnabled
+        case hostHotkeysEnabled, urlSchemeEnabled, backupEnabled, backupFolderPath
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +98,8 @@ struct OptuneAppSettings: Codable, Equatable {
         dpiHotkeyEnabled                 = (try? c.decodeIfPresent(Bool.self,   forKey: .dpiHotkeyEnabled))                 ?? false
         hostHotkeysEnabled               = (try? c.decodeIfPresent(Bool.self,   forKey: .hostHotkeysEnabled))               ?? false
         urlSchemeEnabled                 = (try? c.decodeIfPresent(Bool.self,   forKey: .urlSchemeEnabled))                 ?? false
+        backupEnabled                    = (try? c.decodeIfPresent(Bool.self,   forKey: .backupEnabled))                    ?? false
+        backupFolderPath                 = try? c.decodeIfPresent(String.self,  forKey: .backupFolderPath)
     }
 }
 
@@ -144,6 +149,7 @@ final class SettingsStore {
         if let data = try? encoder.encode(payload) {
             try? data.write(to: storeURL, options: .atomic)
         }
+        SettingsBackup.shared.scheduleWrite()
     }
 
     func updateApp(_ mutate: (inout OptuneAppSettings) -> Void) {

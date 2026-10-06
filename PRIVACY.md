@@ -8,7 +8,7 @@ This policy covers the Optune app and `optune` command-line tool ("Optune") and 
 
 ## 1. What Optune stores on your Mac
 
-Optune keeps its settings in a single JSON file at `~/Library/Application Support/Optune/devices.json`. It can contain:
+Optune keeps its settings in a single JSON file at `~/Library/Application Support/Optune/settings.json`. It can contain:
 
 - your devices' product IDs and serial numbers (used to tell devices apart),
 - device nicknames, DPI stages, SmartShift, wheel and button settings,

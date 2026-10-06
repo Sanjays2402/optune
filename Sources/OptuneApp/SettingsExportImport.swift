@@ -38,14 +38,17 @@ enum SettingsExportImport {
         guard let data = try? Data(contentsOf: url) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let payload = try? decoder.decode(ExportPayload.self, from: data) else {
-            // Fall back to the legacy Store schema.
-            if let legacy = try? decoder.decode(LegacyStorePayload.self, from: data) {
-                SettingsStore.shared.replaceState(app: legacy.app, devices: legacy.devices)
-            }
+        let incoming: (app: OptuneAppSettings, devices: [DeviceSettings])
+        if let payload = try? decoder.decode(ExportPayload.self, from: data) {
+            incoming = (payload.app, payload.devices)
+        } else if let legacy = try? decoder.decode(LegacyStorePayload.self, from: data) {
+            // Legacy store schema, also used by automatic backups.
+            incoming = (legacy.app, legacy.devices)
+        } else {
             return
         }
-        SettingsStore.shared.replaceState(app: payload.app, devices: payload.devices)
+        guard SettingsBackup.confirmImport(of: incoming.devices) else { return }
+        SettingsStore.shared.replaceState(app: incoming.app, devices: incoming.devices)
     }
 
     private struct ExportPayload: Codable {

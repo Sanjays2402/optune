@@ -44,9 +44,9 @@ UnifiedBattery's percent is calibrated by Logi from a discharge curve baked into
 1. You're looking at the **same device**. MX Master 3S over BLE and over the Bolt receiver appear as two distinct HID interfaces on macOS.
 2. Optune polls every 30 seconds. Plugging in shifts the curve immediately; the pill catches up on the next tick.
 
-## Sparkline history
+## Trend history
 
-The menu-bar dropdown shows a 60-sample rolling sparkline. Each sample is the percent at the time of the poll, persisted to `~/Library/Application Support/Optune/battery-history.json`.
+Optune keeps up to 14 days of battery readings (unchanged readings are collapsed) in its settings file, `~/Library/Application Support/Optune/settings.json`. The Devices pane draws them as a trend chart (24 h / 7 d / 14 d) with the drain rate, an estimated time remaining, when you last charged and how many charge sessions you have had.
 
 Three things to know:
 

@@ -32,7 +32,7 @@ A profile is a Swift struct with optional fields. **Only fields you set get appl
 | `scrollMode: ScrollMode?` | Forces ratchet, free-spin, or smart. |
 | `bindings: [Control: RemapAction]?` | Per-button overrides for this app. |
 
-The store is `~/Library/Application Support/Optune/profiles.json`, keyed by bundle ID. You can edit the JSON directly if you want — Optune watches the file with a Dispatch source and reloads on change.
+Profiles are stored with the rest of Optune's settings in `~/Library/Application Support/Optune/settings.json`. Use the app (or Export/Import in the File menu) to change them — edits made to the file while Optune is running are overwritten.
 
 ## Common patterns
 

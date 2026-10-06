@@ -510,6 +510,8 @@ struct GeneralPane: View {
 
             AutomationSection()
 
+            BackupSection()
+
             // Device
             VStack(alignment: .leading, spacing: 0) {
                 SectionHeader("Device")
