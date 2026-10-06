@@ -62,16 +62,19 @@ public struct MouseMapView: View {
                     .frame(width: art, height: art)
                     .position(x: w / 2, y: h / 2)
 
-                // Leader lines
+                // Leader lines — short horizontal run out of the callout, then straight to the dot.
                 ForEach(hotspots) { hs in
                     let p = CGPoint(x: ax + hs.point.x * art, y: hs.point.y * art)
                     let edge = CGPoint(x: hs.side == .left ? 12 + chipW : w - 12 - chipW, y: hs.labelY * h)
+                    let elbow = CGPoint(x: edge.x + (hs.side == .left ? 26 : -26), y: edge.y)
+                    let on = selected == hs.id
                     Path { path in
                         path.move(to: edge)
+                        path.addLine(to: elbow)
                         path.addLine(to: p)
                     }
-                    .stroke(selected == hs.id ? Color.accentColor : Color.primary.opacity(0.25),
-                            style: StrokeStyle(lineWidth: selected == hs.id ? 1.6 : 1, lineCap: .round))
+                    .stroke(on ? Color.accentColor : Color.primary.opacity(0.28),
+                            style: StrokeStyle(lineWidth: on ? 1.6 : 1, lineCap: .round, lineJoin: .round))
                 }
 
                 // Dots
@@ -118,7 +121,19 @@ public struct MouseMapView: View {
 
 // MARK: - Artwork
 
-/// Generic top-down ergonomic mouse, drawn from paths.
+/// A raised, bevelled control cap.
+private struct Key<S: Shape>: View {
+    let shape: S
+    var body: some View {
+        shape
+            .fill(LinearGradient(colors: [Color(white: 0.34), Color(white: 0.12)], startPoint: .top, endPoint: .bottom))
+            .overlay(shape.stroke(LinearGradient(colors: [.white.opacity(0.5), .white.opacity(0.03)],
+                                                 startPoint: .top, endPoint: .bottom), lineWidth: 0.9))
+            .shadow(color: .black.opacity(0.55), radius: 1.6, y: 1.2)
+    }
+}
+
+/// Generic top-down ergonomic mouse, drawn from paths with layered shading.
 struct MouseArt: View {
     let selected: MouseHotspot?
     @Environment(\.colorScheme) private var scheme
@@ -126,71 +141,126 @@ struct MouseArt: View {
     var body: some View {
         GeometryReader { geo in
             let s = geo.size.width
+            let dark = scheme == .dark
             ZStack {
-                // soft contact shadow
-                MouseBody().fill(Color.black.opacity(0.35)).blur(radius: s * 0.04).offset(y: s * 0.035)
+                // Ground shadow: a tight contact shadow plus a wide ambient one.
+                MouseBody().fill(Color.black.opacity(dark ? 0.55 : 0.30)).blur(radius: s * 0.05).offset(x: s * 0.012, y: s * 0.05)
+                MouseBody().fill(Color.black.opacity(dark ? 0.45 : 0.25)).blur(radius: s * 0.012).offset(y: s * 0.012)
 
+                // Shell
                 MouseBody()
                     .fill(LinearGradient(
-                        colors: scheme == .dark
-                            ? [Color(white: 0.34), Color(white: 0.15)]
-                            : [Color(white: 0.52), Color(white: 0.28)],
+                        stops: [
+                            .init(color: Color(white: dark ? 0.38 : 0.55), location: 0.0),
+                            .init(color: Color(white: dark ? 0.22 : 0.36), location: 0.45),
+                            .init(color: Color(white: dark ? 0.10 : 0.20), location: 1.0),
+                        ],
                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                MouseBody()
-                    .fill(RadialGradient(colors: [.white.opacity(scheme == .dark ? 0.20 : 0.28), .clear],
-                                         center: UnitPoint(x: 0.45, y: 0.22), startRadius: 0, endRadius: s * 0.45))
-                MouseBody()
-                    .stroke(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.05), .white.opacity(0.22)],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.2)
 
-                // button seam + split
-                Path { p in
-                    p.move(to: pt(0.525, 0.07, s)); p.addLine(to: pt(0.525, 0.14, s))
-                    p.move(to: pt(0.525, 0.27, s)); p.addLine(to: pt(0.525, 0.30, s))
-                    p.move(to: pt(0.34, 0.33, s))
-                    p.addQuadCurve(to: pt(0.74, 0.33, s), control: pt(0.54, 0.38, s))
+                // Inner shadow around the edge gives the shell volume.
+                MouseBody()
+                    .stroke(Color.black.opacity(0.55), lineWidth: s * 0.07)
+                    .blur(radius: s * 0.028)
+                    .clipShape(MouseBody())
+
+                // Soft top light and a diagonal specular streak.
+                MouseBody()
+                    .fill(RadialGradient(colors: [.white.opacity(dark ? 0.26 : 0.34), .clear],
+                                         center: UnitPoint(x: 0.42, y: 0.20), startRadius: 0, endRadius: s * 0.46))
+                Rectangle()
+                    .fill(LinearGradient(colors: [.clear, .white.opacity(0.13), .clear],
+                                         startPoint: .leading, endPoint: .trailing))
+                    .frame(width: s * 0.10, height: s * 1.2)
+                    .rotationEffect(.degrees(-22))
+                    .offset(x: -s * 0.08, y: -s * 0.02)
+                    .mask(MouseBody())
+
+                // Rim light
+                MouseBody()
+                    .stroke(LinearGradient(colors: [.white.opacity(0.65), .white.opacity(0.04), .white.opacity(0.28)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.3)
+
+                // Button seams, embossed: a dark groove with a light edge just below it.
+                seams(s, color: .black.opacity(0.6), dy: 0)
+                seams(s, color: .white.opacity(0.18), dy: 1.2)
+
+                // Rubber grip texture on the thumb rest.
+                Canvas { ctx, size in
+                    let step = size.width * 0.022
+                    var y = size.height * 0.52
+                    var row = 0
+                    while y < size.height * 0.86 {
+                        var x = size.width * 0.16 + (row % 2 == 0 ? 0 : step / 2)
+                        while x < size.width * 0.31 {
+                            ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 1.6, height: 1.6)),
+                                     with: .color(.white.opacity(0.16)))
+                            x += step
+                        }
+                        y += step
+                        row += 1
+                    }
                 }
-                .stroke(Color.black.opacity(0.45), lineWidth: 1.4)
+                .mask(
+                    Ellipse().frame(width: s * 0.13, height: s * 0.32).rotationEffect(.degrees(12))
+                        .position(pt(0.235, 0.69, s))
+                )
 
-                // scroll wheel
-                RoundedRectangle(cornerRadius: s * 0.03, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(white: 0.7), Color(white: 0.3)], startPoint: .top, endPoint: .bottom))
-                    .frame(width: s * 0.055, height: s * 0.13)
-                    .overlay(RoundedRectangle(cornerRadius: s * 0.03, style: .continuous).strokeBorder(.black.opacity(0.5), lineWidth: 1))
+                // Scroll wheel: dark well, metallic ridged wheel.
+                RoundedRectangle(cornerRadius: s * 0.034, style: .continuous)
+                    .fill(Color.black.opacity(0.75))
+                    .frame(width: s * 0.072, height: s * 0.155)
+                    .position(pt(0.525, 0.205, s))
+                RoundedRectangle(cornerRadius: s * 0.028, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(white: 0.30), Color(white: 0.82), Color(white: 0.30)],
+                                         startPoint: .leading, endPoint: .trailing))
+                    .frame(width: s * 0.054, height: s * 0.138)
+                    .overlay(
+                        VStack(spacing: s * 0.0075) {
+                            ForEach(0..<13, id: \.self) { _ in
+                                Rectangle().fill(Color.black.opacity(0.32)).frame(height: 0.9)
+                            }
+                        }
+                        .padding(.vertical, s * 0.01)
+                        .clipShape(RoundedRectangle(cornerRadius: s * 0.028, style: .continuous))
+                    )
                     .position(pt(0.525, 0.205, s))
 
-                // thumb wheel, back/forward and gesture button on the thumb side
-                Capsule().fill(Color(white: 0.22)).frame(width: s * 0.03, height: s * 0.09)
-                    .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 0.8))
+                // Side wheel, back / forward and gesture button on the thumb side.
+                Key(shape: Capsule()).frame(width: s * 0.03, height: s * 0.09)
                     .rotationEffect(.degrees(-8)).position(pt(0.305, 0.355, s))
-                Capsule().fill(Color(white: 0.2)).frame(width: s * 0.075, height: s * 0.04)
-                    .overlay(Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 0.8))
+                Key(shape: Capsule()).frame(width: s * 0.078, height: s * 0.042)
                     .rotationEffect(.degrees(-62)).position(pt(0.285, 0.43, s))
-                Capsule().fill(Color(white: 0.2)).frame(width: s * 0.075, height: s * 0.04)
-                    .overlay(Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 0.8))
+                Key(shape: Capsule()).frame(width: s * 0.078, height: s * 0.042)
                     .rotationEffect(.degrees(-70)).position(pt(0.272, 0.53, s))
-                Ellipse().fill(Color(white: 0.2)).frame(width: s * 0.06, height: s * 0.07)
-                    .overlay(Ellipse().strokeBorder(.white.opacity(0.28), lineWidth: 0.8))
+                Key(shape: Ellipse()).frame(width: s * 0.064, height: s * 0.074)
+                    .overlay(Ellipse().strokeBorder(.white.opacity(0.18), lineWidth: 0.8).padding(s * 0.011))
                     .position(pt(0.235, 0.69, s))
 
-                // top button + DPI button
-                Capsule().fill(Color(white: 0.2)).frame(width: s * 0.07, height: s * 0.028)
-                    .overlay(Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 0.8))
-                    .position(pt(0.525, 0.37, s))
-                Circle().fill(Color(white: 0.2)).frame(width: s * 0.034, height: s * 0.034)
-                    .overlay(Circle().strokeBorder(.white.opacity(0.28), lineWidth: 0.8))
-                    .position(pt(0.62, 0.50, s))
+                // Top button and DPI button.
+                Key(shape: Capsule()).frame(width: s * 0.072, height: s * 0.03).position(pt(0.525, 0.37, s))
+                Key(shape: Circle()).frame(width: s * 0.036, height: s * 0.036).position(pt(0.62, 0.50, s))
 
-                // highlight on the selected control
+                // Glow on the selected control.
                 if let selected {
                     Circle()
-                        .fill(Color.accentColor.opacity(0.28))
-                        .frame(width: s * 0.11, height: s * 0.11)
-                        .blur(radius: 6)
+                        .fill(Color.accentColor.opacity(0.4))
+                        .frame(width: s * 0.12, height: s * 0.12)
+                        .blur(radius: 7)
                         .position(pt(selected.point.x, selected.point.y, s))
                 }
             }
         }
+    }
+
+    private func seams(_ s: CGFloat, color: Color, dy: CGFloat) -> some View {
+        Path { p in
+            p.move(to: pt(0.525, 0.065, s)); p.addLine(to: pt(0.525, 0.13, s))
+            p.move(to: pt(0.525, 0.28, s)); p.addLine(to: pt(0.525, 0.31, s))
+            p.move(to: pt(0.335, 0.33, s))
+            p.addQuadCurve(to: pt(0.745, 0.33, s), control: pt(0.54, 0.385, s))
+        }
+        .stroke(color, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+        .offset(y: dy)
     }
 
     private func pt(_ x: CGFloat, _ y: CGFloat, _ s: CGFloat) -> CGPoint { CGPoint(x: x * s, y: y * s) }
