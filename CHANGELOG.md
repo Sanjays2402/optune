@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-10-06
+
 ### Added — Automation & setup
 - **Easy-Switch hotkeys**: ⌃⌥1/2/3 switch hosts from anywhere (opt-in).
 - **`optune://` URL scheme** for Shortcuts ("Open URLs"), scripts and `open`: DPI, host, SmartShift, scroll mode,
