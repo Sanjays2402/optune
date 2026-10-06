@@ -143,7 +143,6 @@ private struct Key<S: Shape>: View {
 struct MouseArt: View {
     let selected: MouseHotspot?
     @Environment(\.colorScheme) private var scheme
-    private let dbg = Int(ProcessInfo.processInfo.environment["OPTUNE_MOUSE_DEBUG"] ?? "") ?? 0   // TEMP
 
     var body: some View {
         GeometryReader { geo in
@@ -151,17 +150,14 @@ struct MouseArt: View {
             let dark = scheme == .dark
             ZStack {
                 // Ground shadow: a tight contact shadow plus a wide ambient one.
-                if dbg & 8 == 0 { MouseBody().fill(Color.black.opacity(dark ? 0.26 : 0.20)).blur(radius: s * 0.014).offset(x: s * 0.016, y: s * 0.05)
-                MouseBody().fill(Color.black.opacity(dark ? 0.45 : 0.28)).blur(radius: s * 0.005).offset(x: s * 0.007, y: s * 0.03) }
+                MouseBody().fill(Color.black.opacity(dark ? 0.26 : 0.20)).blur(radius: s * 0.014).offset(x: s * 0.016, y: s * 0.05)
+                MouseBody().fill(Color.black.opacity(dark ? 0.45 : 0.28)).blur(radius: s * 0.005).offset(x: s * 0.007, y: s * 0.03)
 
-                // Side wall: stacked copies of the outline, stepping down and to the right, so the
+                // Side wall: the outline swept down and to the right, merged into one path, so the
                 // shell has visible thickness. Lit near the top edge, dark toward the desk.
-                if dbg & 1 == 0 { ForEach((1...22).reversed(), id: \.self) { i in
-                    let t = Double(i) / 22
-                    MouseBody()
-                        .fill(Color(white: (dark ? 0.34 : 0.46) * (1 - 0.90 * t)))
-                        .offset(x: s * 0.0012 * CGFloat(i), y: s * 0.0050 * CGFloat(i))
-                } }
+                wall(s)
+                    .fill(LinearGradient(colors: [Color(white: dark ? 0.30 : 0.42), Color(white: 0.04)],
+                                         startPoint: .top, endPoint: .bottom))
 
                 // Shell: a dome — bright crest up and to the left, falling off to the lower right.
                 MouseBody()
@@ -185,10 +181,10 @@ struct MouseArt: View {
                 .mask(MouseBody())
 
                 // Inner shadow around the edge gives the shell volume.
-                if dbg & 16 == 0 { MouseBody()
+                MouseBody()
                     .stroke(Color.black.opacity(0.55), lineWidth: s * 0.07)
                     .blur(radius: s * 0.028)
-                    .clipShape(MouseBody()) }
+                    .clipShape(MouseBody())
 
                 // Soft top light and a diagonal specular streak.
                 MouseBody()
@@ -203,19 +199,19 @@ struct MouseArt: View {
                     .mask(MouseBody())
 
                 // Softbox reflection on the dome
-                if dbg & 2 == 0 { RoundedRectangle(cornerRadius: s * 0.12, style: .continuous)
+                RoundedRectangle(cornerRadius: s * 0.12, style: .continuous)
                     .fill(LinearGradient(colors: [.white.opacity(dark ? 0.22 : 0.30), .white.opacity(0.0)],
                                          startPoint: .top, endPoint: .bottom))
                     .frame(width: s * 0.26, height: s * 0.34)
                     .rotationEffect(.degrees(-14))
                     .blur(radius: s * 0.012)
                     .position(pt(0.60, 0.26, s))
-                    .mask(MouseBody()) }
+                    .mask(MouseBody())
                 // A thin bright edge where the dome meets the wall, lower right.
-                if dbg & 4 == 0 { MouseBody()
+                MouseBody()
                     .stroke(LinearGradient(colors: [.clear, .white.opacity(0.0), .white.opacity(0.35)],
                                            startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
-                    .blur(radius: 0.6) }
+                    .blur(radius: 0.6)
 
                 // Rim light
                 MouseBody()
@@ -292,6 +288,16 @@ struct MouseArt: View {
                 }
             }
         }
+    }
+
+    private func wall(_ s: CGFloat) -> Path {
+        let outline = MouseBody().path(in: CGRect(x: 0, y: 0, width: s, height: s))
+        var swept = outline
+        for i in 1...14 {
+            let shift = CGAffineTransform(translationX: s * 0.0017 * CGFloat(i), y: s * 0.0080 * CGFloat(i))
+            swept = swept.union(outline.applying(shift))
+        }
+        return swept
     }
 
     private func seams(_ s: CGFloat, color: Color, dy: CGFloat) -> some View {
