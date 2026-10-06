@@ -24,11 +24,11 @@ public struct MouseHotspot: Identifiable, Hashable, Sendable {
     /// Where the common controls sit on Optune's generic ergonomic-mouse drawing.
     public static let standard: [MouseHotspot] = [
         .init(id: 0x50, name: "Left click",     point: .init(x: 0.43, y: 0.20), side: .left,  labelY: 0.10),
-        .init(id: 0x56, name: "Forward",        point: .init(x: 0.28, y: 0.42), side: .left,  labelY: 0.36),
-        .init(id: 0x53, name: "Back",           point: .init(x: 0.27, y: 0.53), side: .left,  labelY: 0.50),
-        .init(id: 0xC3, name: "Gesture button", point: .init(x: 0.235, y: 0.69), side: .left, labelY: 0.68),
+        .init(id: 0x56, name: "Forward",        point: .init(x: 0.28, y: 0.42), side: .left,  labelY: 0.33),
+        .init(id: 0x53, name: "Back",           point: .init(x: 0.27, y: 0.53), side: .left,  labelY: 0.52),
+        .init(id: 0xC3, name: "Gesture button", point: .init(x: 0.235, y: 0.69), side: .left, labelY: 0.72),
         .init(id: 0x51, name: "Right click",    point: .init(x: 0.63, y: 0.20), side: .right, labelY: 0.10),
-        .init(id: 0x52, name: "Wheel click",    point: .init(x: 0.525, y: 0.20), side: .right, labelY: 0.28),
+        .init(id: 0x52, name: "Wheel click",    point: .init(x: 0.525, y: 0.17), side: .right, labelY: 0.28),
         .init(id: 0xC4, name: "Top button",     point: .init(x: 0.525, y: 0.37), side: .right, labelY: 0.46),
         .init(id: 0xDA, name: "DPI button",     point: .init(x: 0.62, y: 0.50), side: .right, labelY: 0.64),
     ]
@@ -136,6 +136,9 @@ struct MouseArt: View {
                             ? [Color(white: 0.34), Color(white: 0.15)]
                             : [Color(white: 0.52), Color(white: 0.28)],
                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                MouseBody()
+                    .fill(RadialGradient(colors: [.white.opacity(scheme == .dark ? 0.20 : 0.28), .clear],
+                                         center: UnitPoint(x: 0.45, y: 0.22), startRadius: 0, endRadius: s * 0.45))
                 MouseBody()
                     .stroke(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.05), .white.opacity(0.22)],
                                            startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.2)
