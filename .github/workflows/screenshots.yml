@@ -34,6 +34,15 @@ jobs:
           for mode in dark light; do
             for scene in hero menu pointer battery buttons; do shoot $scene $mode "--render" ""; done
           done
+      - name: Mouse debug variants (temporary)
+        run: |
+          BIN=".build/OptuneShowcase.app/Contents/MacOS/OptuneShowcase"
+          for n in 1 2 4 8 16 31; do
+            OPTUNE_MOUSE_DEBUG=$n "$BIN" --scene buttons --dark --render --out "$PWD/shots/dbg-$n.png" > "shots/dbg-$n.log" 2>&1 &
+            PID=$!
+            for i in $(seq 1 15); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+            kill -9 $PID 2>/dev/null || true
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
