@@ -150,16 +150,16 @@ struct MouseArt: View {
             let dark = scheme == .dark
             ZStack {
                 // Ground shadow: a tight contact shadow plus a wide ambient one.
-                MouseBody().fill(Color.black.opacity(dark ? 0.60 : 0.34)).blur(radius: s * 0.06).offset(x: s * 0.02, y: s * 0.085)
-                MouseBody().fill(Color.black.opacity(dark ? 0.50 : 0.28)).blur(radius: s * 0.014).offset(x: s * 0.006, y: s * 0.03)
+                MouseBody().fill(Color.black.opacity(dark ? 0.34 : 0.24)).blur(radius: s * 0.032).offset(x: s * 0.018, y: s * 0.062)
+                MouseBody().fill(Color.black.opacity(dark ? 0.42 : 0.26)).blur(radius: s * 0.01).offset(x: s * 0.008, y: s * 0.036)
 
                 // Side wall: stacked copies of the outline, stepping down and to the right, so the
                 // shell has visible thickness. Lit near the top edge, dark toward the desk.
-                ForEach((1...18).reversed(), id: \.self) { i in
-                    let t = Double(i) / 18
+                ForEach((1...22).reversed(), id: \.self) { i in
+                    let t = Double(i) / 22
                     MouseBody()
-                        .fill(Color(white: (dark ? 0.20 : 0.34) * (1 - 0.82 * t)))
-                        .offset(x: s * 0.0011 * CGFloat(i), y: s * 0.0042 * CGFloat(i))
+                        .fill(Color(white: (dark ? 0.34 : 0.46) * (1 - 0.90 * t)))
+                        .offset(x: s * 0.0012 * CGFloat(i), y: s * 0.0050 * CGFloat(i))
                 }
 
                 // Shell: a dome — bright crest up and to the left, falling off to the lower right.
@@ -172,6 +172,16 @@ struct MouseArt: View {
                             .init(color: Color(white: dark ? 0.06 : 0.14), location: 1.0),
                         ],
                         startPoint: UnitPoint(x: 0.15, y: 0.05), endPoint: UnitPoint(x: 0.95, y: 0.98)))
+
+                // Raised panel for the left/right click buttons
+                Path { p in
+                    p.move(to: pt(0, 0, s)); p.addLine(to: pt(1, 0, s)); p.addLine(to: pt(1, 0.33, s))
+                    p.addLine(to: pt(0.745, 0.33, s))
+                    p.addQuadCurve(to: pt(0.335, 0.33, s), control: pt(0.54, 0.385, s))
+                    p.addLine(to: pt(0, 0.33, s)); p.closeSubpath()
+                }
+                .fill(Color.white.opacity(dark ? 0.07 : 0.10))
+                .mask(MouseBody())
 
                 // Inner shadow around the edge gives the shell volume.
                 MouseBody()
