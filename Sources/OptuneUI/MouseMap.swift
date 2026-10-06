@@ -41,11 +41,15 @@ public struct MouseMapView: View {
     public let hotspots: [MouseHotspot]
     /// What each control currently does, by CID (e.g. "Mission Control").
     public let actions: [UInt16: String]
+    /// Controls currently held down on the real mouse; they light up green.
+    public let pressed: Set<UInt16>
     @Binding public var selected: UInt16?
 
-    public init(hotspots: [MouseHotspot], actions: [UInt16: String], selected: Binding<UInt16?>) {
+    public init(hotspots: [MouseHotspot], actions: [UInt16: String], pressed: Set<UInt16> = [],
+                selected: Binding<UInt16?>) {
         self.hotspots = hotspots
         self.actions = actions
+        self.pressed = pressed
         self._selected = selected
     }
 
@@ -58,7 +62,8 @@ public struct MouseMapView: View {
             let chipW = max(120, min(190, ax - 12))
 
             ZStack(alignment: .topLeading) {
-                MouseArt(selected: selected.flatMap { id in hotspots.first { $0.id == id } })
+                MouseArt(selected: selected.flatMap { id in hotspots.first { $0.id == id } },
+                         pressed: hotspots.filter { pressed.contains($0.id) })
                     .frame(width: art, height: art)
                     .position(x: w / 2, y: h / 2)
 
@@ -68,23 +73,26 @@ public struct MouseMapView: View {
                     let edge = CGPoint(x: hs.side == .left ? 12 + chipW : w - 12 - chipW, y: hs.labelY * h)
                     let elbow = CGPoint(x: edge.x + (hs.side == .left ? 26 : -26), y: edge.y)
                     let on = selected == hs.id
+                    let down = pressed.contains(hs.id)
                     Path { path in
                         path.move(to: edge)
                         path.addLine(to: elbow)
                         path.addLine(to: p)
                     }
-                    .stroke(on ? Color.accentColor : Color.primary.opacity(0.28),
-                            style: StrokeStyle(lineWidth: on ? 1.6 : 1, lineCap: .round, lineJoin: .round))
+                    .stroke(down ? Color.green : (on ? Color.accentColor : Color.primary.opacity(0.28)),
+                            style: StrokeStyle(lineWidth: (on || down) ? 1.8 : 1, lineCap: .round, lineJoin: .round))
                 }
 
                 // Dots
                 ForEach(hotspots) { hs in
                     let p = CGPoint(x: ax + hs.point.x * art, y: hs.point.y * art)
+                    let down = pressed.contains(hs.id)
+                    let tint: Color = down ? .green : .accentColor
                     Circle()
-                        .fill(selected == hs.id ? Color.accentColor : Color.white)
-                        .frame(width: selected == hs.id ? 12 : 9, height: selected == hs.id ? 12 : 9)
-                        .overlay(Circle().strokeBorder(Color.accentColor.opacity(0.9), lineWidth: 1.5))
-                        .shadow(color: Color.accentColor.opacity(selected == hs.id ? 0.6 : 0.25), radius: 5)
+                        .fill(down || selected == hs.id ? tint : Color.white)
+                        .frame(width: down ? 15 : (selected == hs.id ? 12 : 9), height: down ? 15 : (selected == hs.id ? 12 : 9))
+                        .overlay(Circle().strokeBorder(tint.opacity(0.9), lineWidth: 1.5))
+                        .shadow(color: tint.opacity(down ? 0.9 : (selected == hs.id ? 0.6 : 0.25)), radius: down ? 9 : 5)
                         .position(p)
                         .onTapGesture { selected = hs.id }
                 }
@@ -92,6 +100,7 @@ public struct MouseMapView: View {
                 // Callouts
                 ForEach(hotspots) { hs in
                     let isOn = selected == hs.id
+                    let isDown = pressed.contains(hs.id)
                     Button { selected = isOn ? nil : hs.id } label: {
                         VStack(alignment: hs.side == .left ? .trailing : .leading, spacing: 1) {
                             Text(hs.name)
@@ -105,10 +114,12 @@ public struct MouseMapView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                         .frame(width: chipW, alignment: hs.side == .left ? .trailing : .leading)
-                        .glassSurface(cornerRadius: 12, tint: isOn ? .accentColor : nil, shadowRadius: isOn ? 10 : 6)
+                        .glassSurface(cornerRadius: 12, tint: isDown ? .green : (isOn ? .accentColor : nil),
+                                      shadowRadius: (isOn || isDown) ? 10 : 6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(Color.accentColor.opacity(isOn ? 0.8 : 0), lineWidth: 1.2)
+                                .strokeBorder(isDown ? Color.green : Color.accentColor.opacity(isOn ? 0.8 : 0),
+                                              lineWidth: isDown ? 1.8 : 1.2)
                         )
                     }
                     .buttonStyle(.plain)
@@ -142,6 +153,7 @@ private struct Key<S: Shape>: View {
 /// Generic top-down ergonomic mouse, drawn from paths with layered shading.
 struct MouseArt: View {
     let selected: MouseHotspot?
+    var pressed: [MouseHotspot] = []
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -277,6 +289,15 @@ struct MouseArt: View {
                 // Top button and DPI button.
                 Key(shape: Capsule()).frame(width: s * 0.072, height: s * 0.03).position(pt(0.525, 0.37, s))
                 Key(shape: Circle()).frame(width: s * 0.036, height: s * 0.036).position(pt(0.62, 0.50, s))
+
+                // Green flash on controls held down on the real mouse.
+                ForEach(pressed) { hs in
+                    Circle()
+                        .fill(Color.green.opacity(0.55))
+                        .frame(width: s * 0.15, height: s * 0.15)
+                        .blur(radius: 8)
+                        .position(pt(hs.point.x, hs.point.y, s))
+                }
 
                 // Glow on the selected control.
                 if let selected {

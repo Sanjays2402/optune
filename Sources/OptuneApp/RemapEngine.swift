@@ -133,6 +133,8 @@ final class RemapEngine {
     private var gestures: [UInt16: [GestureDirection: RemapAction]] = [:]
     private var recognizer = GestureRecognizer()
     private var activeGestureCID: UInt16?
+    /// While true, button events are tracked but no action fires (used by "press a button to find it").
+    var paused = false
     private let dispatchQueue = DispatchQueue(label: "io.github.sanjays2402.optune.remap", qos: .userInitiated)
 
     /// Initialize against a live transport and apply the initial bindings.
@@ -199,6 +201,11 @@ final class RemapEngine {
     }
 
     private func handle(event: ReprogControlsV4Feature.ButtonEvent) {
+        if paused {
+            lastPressed = event.pressedCIDs
+            activeGestureCID = nil
+            return
+        }
         // Rising edge: CIDs in `pressedCIDs` that weren't there before.
         let rising = event.pressedCIDs.subtracting(lastPressed)
         let falling = lastPressed.subtracting(event.pressedCIDs)

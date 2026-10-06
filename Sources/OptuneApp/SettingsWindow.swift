@@ -1010,8 +1010,13 @@ private struct ButtonMapCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.lg) {
-            MouseMapView(hotspots: hotspots, actions: actions, selected: $selected)
+            MouseMapView(hotspots: hotspots, actions: actions, pressed: model.pressedCIDs, selected: $selected)
                 .frame(height: 340)
+
+            Label("Press a button on your mouse to find it here. Remaps are paused while this page is open, and left/right click can’t be detected.",
+                  systemImage: "dot.radiowaves.left.and.right")
+                .font(OptuneDesign.Typography.caption)
+                .foregroundStyle(.secondary)
 
             if let cid = selected, let control = controls.first(where: { $0.cid == cid }) {
                 inspector(for: control)
@@ -1023,6 +1028,12 @@ private struct ButtonMapCard: View {
         }
         .padding(OptuneDesign.Spacing.xl)
         .glassSurface(cornerRadius: OptuneDesign.Radius.card)
+        .onAppear { model.startIdentify() }
+        .onDisappear { model.stopIdentify() }
+        .onChange(of: model.pressedCIDs) { _, pressed in
+            // Jump to whatever was just pressed so it can be reassigned straight away.
+            if let hit = hotspots.first(where: { pressed.contains($0.id) }) { selected = hit.id }
+        }
     }
 
     @ViewBuilder

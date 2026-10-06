@@ -620,6 +620,65 @@ final class DeviceModel: ObservableObject {
         await remapEngine?.apply(bindings: bindings, gestures: gestureBindings, featureIndex: lookup.featureIndex)
     }
 
+    // MARK: - Identify mode ("press a button to find it")
+
+    /// Controls currently held down on the mouse, while identify mode is on.
+    @Published private(set) var pressedCIDs: Set<UInt16> = []
+    private var identifyWanted = false
+    private var identifyToken: UInt64?
+    private var identifyFeatureIndex: UInt8?
+
+    /// Divert every reprogrammable control so presses reach Optune, and publish them in
+    /// `pressedCIDs`. Remap actions are paused until `stopIdentify()`.
+    func startIdentify() {
+        identifyWanted = true
+        Task { [weak self] in
+            guard let self, self.identifyToken == nil, let device = self.primaryDevice else { return }
+            if self.remapTransport == nil { self.remapTransport = try? HIDPPTransport(matching: device) }
+            guard let transport = self.remapTransport,
+                  let lookup = try? await RootFeature.getFeature(on: transport, featureID: ReprogControlsV4Feature.id),
+                  lookup.isPresent else { return }
+            self.identifyFeatureIndex = lookup.featureIndex
+            self.remapEngine?.paused = true
+            self.identifyToken = transport.addEventSubscriber { [weak self] response in
+                guard let event = ReprogControlsV4Feature.decodeButtonEvent(response) else { return }
+                Task { @MainActor in self?.pressedCIDs = event.pressedCIDs }
+            }
+            let controls = (try? await ReprogControlsV4Feature.snapshot(on: transport)) ?? []
+            for control in controls where control.isReprogrammable {
+                _ = try? await ReprogControlsV4Feature.setReporting(
+                    on: transport,
+                    featureIndex: lookup.featureIndex,
+                    reporting: .init(cid: control.cid, diverted: true)
+                )
+            }
+            // The pane may have closed while we were setting up.
+            if !self.identifyWanted { self.stopIdentify() }
+        }
+    }
+
+    /// Hand the controls back: un-divert everything, resume remaps, and re-apply saved bindings.
+    func stopIdentify() {
+        identifyWanted = false
+        Task { [weak self] in
+            guard let self, let token = self.identifyToken,
+                  let transport = self.remapTransport, let index = self.identifyFeatureIndex else { return }
+            transport.removeEventSubscriber(token)
+            self.identifyToken = nil
+            self.pressedCIDs = []
+            let controls = (try? await ReprogControlsV4Feature.snapshot(on: transport)) ?? []
+            for control in controls where control.isReprogrammable {
+                _ = try? await ReprogControlsV4Feature.setReporting(
+                    on: transport,
+                    featureIndex: index,
+                    reporting: .init(cid: control.cid, diverted: false)
+                )
+            }
+            self.remapEngine?.paused = false
+            if let device = self.primaryDevice { await self.reconcileRemapEngine(for: device) }
+        }
+    }
+
     var recognizedDevices: [LogitechDevice] {
         devices.filter { DeviceRegistry.descriptor(for: $0) != nil }
     }

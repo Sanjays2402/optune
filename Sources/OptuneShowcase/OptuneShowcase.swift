@@ -577,7 +577,8 @@ private struct ButtonsPane: View {
             hotspots: MouseHotspot.standard,
             actions: [0x50: "Default", 0x51: "Default", 0x52: "Mission Control", 0x53: "Back (⌘[)", 0x56: "Forward (⌘])",
                       0xC3: "Show Desktop · 4 swipes", 0xC4: "Toggle SmartShift", 0xDA: "Cycle DPI stages"],
-            selected: .constant(0xC3)
+            pressed: [0x53],
+            selected: .constant(0x53)
         )
         .frame(height: 340)
         VStack(spacing: 0) {
