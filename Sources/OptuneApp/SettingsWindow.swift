@@ -875,6 +875,9 @@ private struct ButtonsPane: View {
             }
 
             if case .ok(let controls) = model.telemetry.buttons {
+                ButtonMapCard(controls: controls)
+
+                SectionHeader("All controls")
                 InsetGroup {
                     ForEach(Array(controls.enumerated()), id: \.element.id) { idx, control in
                         if idx > 0 { GroupDivider() }
@@ -966,6 +969,97 @@ private struct ButtonsPane: View {
         case .unavailable(let why): return why
         case .unknown: return "Polling device for ReprogControlsV4 (0x1B04)…"
         case .ok: return ""
+        }
+    }
+}
+
+/// Illustrated mouse with a callout per control; selecting one opens its action picker below.
+private struct ButtonMapCard: View {
+    let controls: [DeviceTelemetry.SerializableControl]
+    @EnvironmentObject private var model: DeviceModel
+    @State private var selected: UInt16?
+
+    /// Standard hotspots for controls this device reports. Some devices expose the
+    /// gesture button under a different control ID, so fall back to the alternates.
+    private var hotspots: [MouseHotspot] {
+        let present = Set(controls.map(\.cid))
+        var out: [MouseHotspot] = []
+        for hs in MouseHotspot.standard {
+            if present.contains(hs.id) {
+                out.append(hs)
+            } else if hs.id == 0xC3, let alt = [UInt16(0xED), 0xD7].first(where: present.contains) {
+                out.append(MouseHotspot(id: alt, name: hs.name, point: hs.point, side: hs.side, labelY: hs.labelY))
+            }
+        }
+        return out
+    }
+
+    private var actions: [UInt16: String] {
+        var out: [UInt16: String] = [:]
+        for hs in hotspots { out[hs.id] = summary(hs.id) }
+        return out
+    }
+
+    private func summary(_ cid: UInt16) -> String {
+        guard let control = controls.first(where: { $0.cid == cid }) else { return "—" }
+        if !control.isReprogrammable { return "Fixed" }
+        let tap = model.remapAction(for: cid).flatMap { $0 == .none ? nil : $0.displayName } ?? "Default"
+        let swipes = GestureDirection.allCases.filter { model.gestureAction(for: cid, $0) != .none }.count
+        return swipes > 0 ? "\(tap) · \(swipes) swipe\(swipes == 1 ? "" : "s")" : tap
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OptuneDesign.Spacing.lg) {
+            MouseMapView(hotspots: hotspots, actions: actions, selected: $selected)
+                .frame(height: 340)
+
+            if let cid = selected, let control = controls.first(where: { $0.cid == cid }) {
+                inspector(for: control)
+            } else {
+                Text("Select a control on the mouse to change what it does. The drawing is a generic mouse, not your exact model.")
+                    .font(OptuneDesign.Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(OptuneDesign.Spacing.xl)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
+    }
+
+    @ViewBuilder
+    private func inspector(for control: DeviceTelemetry.SerializableControl) -> some View {
+        VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
+            Divider().opacity(0.4)
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(control.name).font(OptuneDesign.Typography.header)
+                    Text("CID \(String(format: "0x%04X", control.cid))")
+                        .font(OptuneDesign.Typography.mono)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+                if control.isReprogrammable {
+                    ActionPicker(current: model.remapAction(for: control.cid) ?? .none) {
+                        model.setRemap(cid: control.cid, action: $0)
+                    }
+                } else {
+                    CapabilityPill(text: "Fixed", tone: .neutral)
+                }
+            }
+            if control.isReprogrammable && ReprogControlsV4Feature.gestureCIDs.contains(control.cid) {
+                Text("Hold and swipe — a plain press still uses the action above.")
+                    .font(OptuneDesign.Typography.caption)
+                    .foregroundStyle(.tertiary)
+                ForEach(GestureDirection.allCases, id: \.self) { dir in
+                    HStack {
+                        Image(systemName: "arrow.\(dir.rawValue)").frame(width: 18).foregroundStyle(.secondary)
+                        Text("Swipe \(dir.label)").font(OptuneDesign.Typography.body)
+                        Spacer()
+                        ActionPicker(current: model.gestureAction(for: control.cid, dir)) {
+                            model.setGesture(cid: control.cid, direction: dir, action: $0)
+                        }
+                    }
+                }
+            }
         }
     }
 }
