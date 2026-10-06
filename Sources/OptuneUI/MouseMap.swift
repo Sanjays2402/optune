@@ -168,7 +168,7 @@ struct MouseArt: View {
                 // Side wall: the outline swept down and to the right, merged into one path, so the
                 // shell has visible thickness. Lit near the top edge, dark toward the desk.
                 wall(s)
-                    .fill(LinearGradient(colors: [Color(white: dark ? 0.30 : 0.42), Color(white: 0.04)],
+                    .fill(LinearGradient(colors: [Color(white: dark ? 0.30 : 0.40), Color(white: dark ? 0.05 : 0.15)],
                                          startPoint: .top, endPoint: .bottom))
 
                 // Shell: a dome — bright crest up and to the left, falling off to the lower right.
@@ -314,8 +314,8 @@ struct MouseArt: View {
     private func wall(_ s: CGFloat) -> Path {
         let outline = MouseBody().path(in: CGRect(x: 0, y: 0, width: s, height: s))
         var swept = outline
-        for i in 1...14 {
-            let shift = CGAffineTransform(translationX: s * 0.0017 * CGFloat(i), y: s * 0.0080 * CGFloat(i))
+        for i in 1...9 {
+            let shift = CGAffineTransform(translationX: s * 0.0013 * CGFloat(i), y: s * 0.0062 * CGFloat(i))
             swept = swept.union(outline.applying(shift))
         }
         return swept
