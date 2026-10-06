@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Automation & setup
+- **Easy-Switch hotkeys**: ⌃⌥1/2/3 switch hosts from anywhere (opt-in).
+- **`optune://` URL scheme** for Shortcuts ("Open URLs"), scripts and `open`: DPI, host, SmartShift, scroll mode,
+  report rate. Off by default.
+- **Settings backup** to a folder you choose (iCloud Drive, Git, …) — stable, diff-friendly JSON — and a warning
+  before importing any settings file that binds shell commands.
+- **Report rate** (HID++ `0x8060`): `optune rate`, plus a polling-rate picker in Pointer for devices that support it.
+- **Setup checklist** at the top of the menu bar dropdown while Input Monitoring or Accessibility is missing.
+- Per-app profiles can set the side-wheel direction.
+
+### Fixed — Docs
+- Privacy Policy, site and docs now name the real settings file (`settings.json`) and describe the current
+  battery history.
+
 ### Added — Legal & policies
 - Privacy Policy, Terms of Use, Trademarks/non-affiliation notice, Third-party notices, Security policy,
   Contributing guide (with DCO) and Code of Conduct — in the repo and on the website under `/docs/`.

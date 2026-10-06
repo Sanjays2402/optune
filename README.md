@@ -35,8 +35,9 @@ brew install --cask optune
 | 🎯 **DPI stages** | Save up to six DPI stages, switch from the menu bar in one click, or cycle with <kbd>⌃</kbd><kbd>⌥</kbd><kbd>D</kbd> from anywhere. |
 | 🖐 **Gesture button** | Hold the thumb button and swipe up, down, left or right — each direction runs its own action. |
 | 🧭 **Button remapping** | Rebind any reprogrammable control to keystrokes, media keys, mouse clicks, Mission Control, apps, or shell commands. |
-| 🪟 **Per-app profiles** | DPI and SmartShift follow the app you're using. |
-| 🔀 **Multi-host** | See paired hosts and switch Easy-Switch slots. |
+| 🪟 **Per-app profiles** | DPI, SmartShift and wheel settings follow the app you're using. |
+| 🔀 **Multi-host** | See paired hosts and switch Easy-Switch slots — or press <kbd>⌃</kbd><kbd>⌥</kbd><kbd>1–3</kbd>. |
+| ⚡ **Automation** | Opt-in `optune://` links for Shortcuts and scripts, a polling-rate picker, and automatic settings backup. |
 | ⌨️ **Keyboard** | Backlight control and Fn-lock. |
 | ✨ **Liquid Glass UI** | Layered glass surfaces and an ambient backdrop; native Liquid Glass on macOS 26. |
 
