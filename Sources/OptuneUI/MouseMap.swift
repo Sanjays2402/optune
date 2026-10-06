@@ -150,8 +150,8 @@ struct MouseArt: View {
             let dark = scheme == .dark
             ZStack {
                 // Ground shadow: a tight contact shadow plus a wide ambient one.
-                MouseBody().fill(Color.black.opacity(dark ? 0.34 : 0.24)).blur(radius: s * 0.032).offset(x: s * 0.018, y: s * 0.062)
-                MouseBody().fill(Color.black.opacity(dark ? 0.42 : 0.26)).blur(radius: s * 0.01).offset(x: s * 0.008, y: s * 0.036)
+                MouseBody().fill(Color.black.opacity(dark ? 0.26 : 0.20)).blur(radius: s * 0.014).offset(x: s * 0.016, y: s * 0.05)
+                MouseBody().fill(Color.black.opacity(dark ? 0.45 : 0.28)).blur(radius: s * 0.005).offset(x: s * 0.007, y: s * 0.03)
 
                 // Side wall: stacked copies of the outline, stepping down and to the right, so the
                 // shell has visible thickness. Lit near the top edge, dark toward the desk.
