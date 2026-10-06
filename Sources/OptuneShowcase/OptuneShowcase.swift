@@ -30,6 +30,7 @@ private struct Options {
         switch scene {
         case "menu":    return CGSize(width: 560, height: 700)
         case "hero":    return CGSize(width: 1600, height: 700)
+        case "buttons": return CGSize(width: 1240, height: 940)
         default:        return CGSize(width: 1240, height: 760)
         }
     }
@@ -73,7 +74,7 @@ private struct SceneRoot: View {
             case "menu":    Wallpaper { MenuMock().frame(width: 380) }
             case "pointer": Wallpaper { MockWindow(selected: "Pointer") { PointerPane() } }
             case "battery": Wallpaper { MockWindow(selected: "Devices") { DevicesPane() } }
-            case "buttons": Wallpaper { MockWindow(selected: "Buttons") { ButtonsPane() } }
+            case "buttons": Wallpaper { MockWindow(selected: "Buttons", height: 820) { ButtonsPane() } }
             default:        Hero()
             }
         }
@@ -571,7 +572,14 @@ private struct ButtonsPane: View {
     ]
 
     var body: some View {
-        Header(title: "Buttons", subtitle: "Remap any control — hold the gesture button and swipe for four more actions.")
+        Header(title: "Buttons", subtitle: "Click a control on the mouse to choose what it does.")
+        MouseMapView(
+            hotspots: MouseHotspot.standard,
+            actions: [0x50: "Default", 0x51: "Default", 0x52: "Mission Control", 0x53: "Back (⌘[)", 0x56: "Forward (⌘])",
+                      0xC3: "Show Desktop · 4 swipes", 0xC4: "Toggle SmartShift", 0xDA: "Cycle DPI stages"],
+            selected: .constant(0xC3)
+        )
+        .frame(height: 340)
         VStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { idx, r in
                 if idx > 0 { Rectangle().fill(OptuneDesign.Layer.divider).frame(height: 0.5).padding(.leading, 52) }
