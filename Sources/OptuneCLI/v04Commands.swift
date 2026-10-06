@@ -610,3 +610,52 @@ struct ThumbWheelCommand: AsyncParsableCommand {
         }
     }
 }
+
+
+// MARK: - rate
+
+struct ReportRateCommand: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "rate",
+        abstract: "Read or set the polling (report) rate, e.g. `optune rate 1000`."
+    )
+
+    @Argument(help: "Polling rate in Hz to set (e.g. 125, 250, 500, 1000). Omit to read.")
+    var hertz: Int?
+
+    @Option(name: .shortAndLong, help: "Specific PID to query (hex, e.g. 0xB034).")
+    var pid: String?
+
+    @Flag(name: .shortAndLong, help: "Output JSON instead of human-readable.")
+    var json: Bool = false
+
+    func run() async throws {
+        let device = try CLISupport.resolveDevice(pid: pid)
+        let transport = try CLISupport.openTransport(for: device)
+        defer { transport.close() }
+
+        let lookup = try await RootFeature.getFeature(on: transport, featureID: ReportRateFeature.id)
+        guard lookup.isPresent else {
+            throw CLIError.featureMissing("Report Rate (0x8060)")
+        }
+        var status = try await ReportRateFeature.getStatus(on: transport, featureIndex: lookup.featureIndex)
+
+        if let hertz {
+            guard let ms = ReportRateFeature.intervalMs(forHertz: hertz, supported: status.supportedMs) else {
+                throw CLIError.featureMissing("any supported polling rate")
+            }
+            try await ReportRateFeature.setInterval(on: transport, featureIndex: lookup.featureIndex, ms: ms)
+            status = try await ReportRateFeature.getStatus(on: transport, featureIndex: lookup.featureIndex)
+        }
+
+        if json {
+            try CLISupport.writeJSON([
+                "device": device.displayName,
+                "currentHz": status.currentHz,
+                "supportedHz": status.supportedHz
+            ])
+            return
+        }
+        print("\(device.displayName) — \(status.currentHz) Hz (supported: \(status.supportedHz.map(String.init).joined(separator: ", ")))")
+    }
+}

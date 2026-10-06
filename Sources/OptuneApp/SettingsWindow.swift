@@ -603,6 +603,7 @@ private struct PointerPane: View {
                         apply: { model.applyDPI($0) }
                     )
                     DPIStagesEditor()
+                    ReportRateControl()
                     SmartShiftControl(
                         state: model.telemetry.smartShift,
                         draft: $smartshiftDraft,
@@ -614,6 +615,37 @@ private struct PointerPane: View {
                 NoDeviceState()
             }
         }
+    }
+}
+
+/// Polling-rate picker. Shown only when the device exposes Report Rate (0x8060).
+private struct ReportRateControl: View {
+    @EnvironmentObject private var model: DeviceModel
+
+    var body: some View {
+        Group {
+            if let info = model.reportRate, !info.supportedHz.isEmpty {
+                VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Polling rate").font(OptuneDesign.Typography.header)
+                        Text("How often the mouse reports its position. Higher is smoother; lower saves battery.")
+                            .font(OptuneDesign.Typography.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Picker("", selection: Binding(
+                        get: { info.currentHz },
+                        set: { model.setReportRate(hz: $0) }
+                    )) {
+                        ForEach(info.supportedHz, id: \.self) { Text("\($0) Hz").tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                .padding(OptuneDesign.Spacing.xl)
+                .glassSurface(cornerRadius: OptuneDesign.Radius.card)
+            }
+        }
+        .onAppear { model.refreshReportRate() }
     }
 }
 

@@ -383,6 +383,47 @@ final class DeviceModel: ObservableObject {
         }
     }
 
+    // MARK: - Report rate (0x8060)
+
+    /// Polling-rate info for the primary device; nil when unsupported or not read yet.
+    @Published private(set) var reportRate: ReportRateInfo?
+
+    func refreshReportRate() {
+        Task { [weak self] in
+            guard let self, let device = self.primaryDevice else { return }
+            self.reportRate = await Self.readReportRate(device)
+        }
+    }
+
+    func setReportRate(hz: Int) {
+        Task { [weak self] in
+            guard let self, let device = self.primaryDevice else { return }
+            await Self.writeReportRate(hz: hz, to: device)
+            self.reportRate = await Self.readReportRate(device)
+        }
+    }
+
+    private static func readReportRate(_ device: LogitechDevice) async -> ReportRateInfo? {
+        guard let transport = try? HIDPPTransport(matching: device) else { return nil }
+        defer { transport.close() }
+        guard let lookup = try? await RootFeature.getFeature(on: transport, featureID: ReportRateFeature.id),
+              lookup.isPresent,
+              let status = try? await ReportRateFeature.getStatus(on: transport, featureIndex: lookup.featureIndex)
+        else { return nil }
+        return ReportRateInfo(currentHz: status.currentHz, supportedHz: status.supportedHz)
+    }
+
+    private static func writeReportRate(hz: Int, to device: LogitechDevice) async {
+        guard let transport = try? HIDPPTransport(matching: device) else { return }
+        defer { transport.close() }
+        guard let lookup = try? await RootFeature.getFeature(on: transport, featureID: ReportRateFeature.id),
+              lookup.isPresent,
+              let status = try? await ReportRateFeature.getStatus(on: transport, featureIndex: lookup.featureIndex),
+              let ms = ReportRateFeature.intervalMs(forHertz: hz, supported: status.supportedMs)
+        else { return }
+        _ = try? await ReportRateFeature.setInterval(on: transport, featureIndex: lookup.featureIndex, ms: ms)
+    }
+
     /// Switch host (0x1814) — moves the device to a different paired host.
     func switchHost(to index: UInt8) {
         Task { [weak self] in
@@ -1225,4 +1266,10 @@ extension DeviceTelemetry.ThumbWheel {
     var unavailableReason: String? {
         if case .unavailable(let why) = self { return why } else { return nil }
     }
+}
+
+/// Polling-rate state shown in the Pointer pane.
+struct ReportRateInfo: Equatable {
+    var currentHz: Int
+    var supportedHz: [Int]
 }

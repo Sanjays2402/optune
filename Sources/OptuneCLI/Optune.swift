@@ -13,7 +13,7 @@ struct Optune: AsyncParsableCommand {
             Battery.self, DPICommand.self, SmartShiftCommand.self, ButtonsCommand.self,
             FirmwareCommand.self, NameCommand.self, HostCommand.self, ProfileCommand.self,
             WheelCommand.self, SpeedCommand.self, ThumbWheelCommand.self, ResetCommand.self,
-            MonitorCommand.self, ExportCommand.self
+            MonitorCommand.self, ExportCommand.self, ReportRateCommand.self
         ]
     )
 }
