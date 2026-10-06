@@ -68,3 +68,10 @@ optune buttons --reset-all
 ```
 
 The CLI uses the same action identifiers the catalog uses — you can find the full list with `optune buttons --catalog`.
+
+
+## Press a button to find it
+
+Open **Buttons** and press any button on your mouse. Its callout on the illustrated mouse lights up green and is selected, so you can change what it does straight away.
+
+To make this work, Optune takes over the mouse's reprogrammable controls while the page is open: your remaps are paused (a press won't trigger its action) and the controls are handed back, with your saved bindings re-applied, as soon as you leave the page. Left and right click aren't reprogrammable, so they can't be detected this way — they work normally.

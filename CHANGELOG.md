@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Press a button to find it
+- While the Buttons pane is open, **pressing a button on your mouse lights it up on the map** and selects it so you
+  can reassign it straight away. Optune takes over the reprogrammable controls for the duration — remaps are paused
+  and everything is handed back when you leave the page. Left and right click can't be detected this way.
+
 ### Added — Visual button map
 - The Buttons pane now shows an **illustrated mouse with a callout on each control**. Click a callout (or its dot)
   to see what it does and change it in place, including the gesture swipes. The full list remains below.
