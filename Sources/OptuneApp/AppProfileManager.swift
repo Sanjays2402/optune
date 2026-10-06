@@ -16,6 +16,7 @@ struct AppProfile: Codable, Equatable, Identifiable {
     var smartShiftThreshold: UInt8?
     var wheelInverted: Bool?
     var wheelRatchet: Bool?
+    var thumbWheelInverted: Bool?
 }
 
 /// Watches frontmost-app changes, picks the matching profile, and asks the
@@ -96,6 +97,9 @@ final class AppProfileManager: ObservableObject {
         }
         if let ratchet = profile.wheelRatchet {
             model.setWheelRatchet(ratchet)
+        }
+        if let thumb = profile.thumbWheelInverted {
+            model.setThumbWheelInverted(thumb)
         }
     }
 

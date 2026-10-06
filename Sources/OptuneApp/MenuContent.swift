@@ -15,6 +15,10 @@ struct MenuContent: View {
                 .padding(.top, OptuneDesign.Spacing.lg)
                 .padding(.bottom, OptuneDesign.Spacing.md)
 
+            SetupChecklist()
+                .padding(.horizontal, OptuneDesign.Spacing.lg)
+                .padding(.bottom, OptuneDesign.Spacing.md)
+
             if let device = model.primaryDevice, let descriptor = model.primaryDescriptor {
                 DeviceCard(device: device, descriptor: descriptor, telemetry: model.telemetry)
                     .padding(.horizontal, OptuneDesign.Spacing.lg)

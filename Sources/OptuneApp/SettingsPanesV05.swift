@@ -179,6 +179,7 @@ private struct ProfileRow: View {
         if profile.smartShiftEnabled == false { parts.append("SmartShift off") }
         if profile.wheelInverted == true { parts.append("wheel inverted") }
         if profile.wheelRatchet == false { parts.append("freespin wheel") }
+        if profile.thumbWheelInverted == true { parts.append("side wheel inverted") }
         return parts.joined(separator: " • ")
     }
 }
@@ -199,6 +200,8 @@ private struct ProfileEditor: View {
     @State private var wheelInverted: Bool = false
     @State private var wheelRatchetEnabled = false
     @State private var wheelRatchet: Bool = true
+    @State private var thumbInvEnabled = false
+    @State private var thumbInverted: Bool = false
     @State private var apps: [InstalledApp] = []
     @State private var bundleSelection: Set<String> = []
 
@@ -299,6 +302,11 @@ private struct ProfileEditor: View {
                         if wheelRatchetEnabled {
                             Toggle("Ratchet (notched)", isOn: $wheelRatchet)
                         }
+
+                        Toggle("Set side-wheel direction", isOn: $thumbInvEnabled)
+                        if thumbInvEnabled {
+                            Toggle("Inverted side wheel", isOn: $thumbInverted)
+                        }
                     }
                 }
                 .padding(.horizontal, 18)
@@ -318,6 +326,7 @@ private struct ProfileEditor: View {
                     p.smartShiftThreshold = smartEnabled ? UInt8(clamping: Int(smartThreshold)) : nil
                     p.wheelInverted = wheelInvEnabled ? wheelInverted : nil
                     p.wheelRatchet = wheelRatchetEnabled ? wheelRatchet : nil
+                    p.thumbWheelInverted = thumbInvEnabled ? thumbInverted : nil
                     save(p)
                 }
                 .keyboardShortcut(.defaultAction)
@@ -340,6 +349,8 @@ private struct ProfileEditor: View {
             wheelInverted = profile.wheelInverted ?? false
             wheelRatchetEnabled = profile.wheelRatchet != nil
             wheelRatchet = profile.wheelRatchet ?? true
+            thumbInvEnabled = profile.thumbWheelInverted != nil
+            thumbInverted = profile.thumbWheelInverted ?? false
         }
     }
 }
