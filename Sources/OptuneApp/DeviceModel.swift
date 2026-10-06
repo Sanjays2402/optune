@@ -182,6 +182,7 @@ final class DeviceModel: ObservableObject {
         appProfileManager.deviceModel = self
         installRemapDispatcher()
         syncDPIHotkey()
+        AutomationController.shared.attach(self)
         sleepObserver = SleepObserver { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refresh()
@@ -263,11 +264,11 @@ final class DeviceModel: ObservableObject {
 
     private func syncDPIHotkey() {
         if dpiHotkeyEnabled {
-            GlobalHotkey.shared.register(keyCode: 2) { [weak self] in   // kVK_ANSI_D
+            GlobalHotkey.shared.register(id: 1, keyCode: 2) { [weak self] in   // kVK_ANSI_D
                 Task { @MainActor in self?.cycleDPIPreset() }
             }
         } else {
-            GlobalHotkey.shared.unregister()
+            GlobalHotkey.shared.unregister(id: 1)
         }
     }
 

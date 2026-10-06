@@ -52,6 +52,13 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>LSUIElement</key><true/>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>com.sanjays2402.optune</string>
+      <key>CFBundleURLSchemes</key><array><string>optune</string></array>
+    </dict>
+  </array>
 ${ICON_LINE}
   <key>NSHumanReadableCopyright</key><string>© 2026 Sanjay Santhanam — GPL-3.0-or-later</string>
 </dict>

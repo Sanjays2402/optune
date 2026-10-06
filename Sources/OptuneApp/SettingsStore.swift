@@ -65,6 +65,10 @@ struct OptuneAppSettings: Codable, Equatable {
     var welcomeCompleted: Bool = false
     /// Whether ⌃⌥D cycles DPI stages system-wide.
     var dpiHotkeyEnabled: Bool = false
+    /// Whether ⌃⌥1/2/3 switch Easy-Switch hosts system-wide.
+    var hostHotkeysEnabled: Bool = false
+    /// Whether `optune://` URLs may control the device (off by default — any web page can open a URL).
+    var urlSchemeEnabled: Bool = false
 
     init() {}
 
@@ -73,6 +77,7 @@ struct OptuneAppSettings: Codable, Equatable {
         case connectionNotificationsEnabled, hostSwitchNotificationsEnabled
         case launchAtLogin, autoApplyOnReconnect
         case appProfilesEnabled, appProfiles, autoUpdateEnabled, welcomeCompleted, dpiHotkeyEnabled
+        case hostHotkeysEnabled, urlSchemeEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -88,6 +93,8 @@ struct OptuneAppSettings: Codable, Equatable {
         autoUpdateEnabled                = (try? c.decodeIfPresent(Bool.self,   forKey: .autoUpdateEnabled))                ?? true
         welcomeCompleted                 = (try? c.decodeIfPresent(Bool.self,   forKey: .welcomeCompleted))                 ?? false
         dpiHotkeyEnabled                 = (try? c.decodeIfPresent(Bool.self,   forKey: .dpiHotkeyEnabled))                 ?? false
+        hostHotkeysEnabled               = (try? c.decodeIfPresent(Bool.self,   forKey: .hostHotkeysEnabled))               ?? false
+        urlSchemeEnabled                 = (try? c.decodeIfPresent(Bool.self,   forKey: .urlSchemeEnabled))                 ?? false
     }
 }
 
