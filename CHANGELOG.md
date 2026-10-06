@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Visual button map
+- The Buttons pane now shows an **illustrated mouse with a callout on each control**. Click a callout (or its dot)
+  to see what it does and change it in place, including the gesture swipes. The full list remains below.
+- The drawing is original, generic artwork — no manufacturer photos or trade dress. It is not your exact model,
+  and only controls your device actually reports are shown.
+
 ## [0.8.0] — 2026-10-06
 
 ### Added — Automation & setup
