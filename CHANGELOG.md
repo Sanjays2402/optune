@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Changed — button map
+- The illustrated mouse **adapts to the model**: ergonomic (MX Master), compact (MX Anywhere) or vertical (MX Vertical),
+  with callouts placed to match.
+- VoiceOver labels and keyboard access for the map's callouts.
+
+### Added — Quality of life
+- **Per-app profiles now restore your settings** when you switch to an app without a profile (and when profiles are
+  turned off); the menu shows the active profile's name.
+- **Copy diagnostics** in About: versions, permissions and device models — no serial numbers or settings.
+- Original template **menu bar icon** (replaces an SF Symbol).
+
+### Fixed
+- Identify mode no longer breaks when you change a remap while it is on, and can't get stuck or leak its connection.
+
 ### Added — Press a button to find it
 - While the Buttons pane is open, **pressing a button on your mouse lights it up on the map** and selects it so you
   can reassign it straight away. Optune takes over the reprogrammable controls for the duration — remaps are paused

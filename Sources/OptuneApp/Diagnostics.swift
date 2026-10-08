@@ -19,10 +19,10 @@ enum Diagnostics {
             let known = DeviceRegistry.descriptor(for: device)?.modelName ?? "unrecognized"
             lines.append("  - \(device.displayName) · PID \(String(format: "0x%04X", device.productID)) · \(device.transport ?? "unknown transport") · \(known)")
         }
-        lines.append("Battery: \(describe(model.telemetry.battery))")
-        lines.append("DPI: \(describe(model.telemetry.dpi))")
-        lines.append("SmartShift: \(describe(model.telemetry.smartShift))")
-        lines.append("Buttons: \(describe(model.telemetry.buttons))")
+        lines.append("Battery: \(status(model.telemetry.battery.unavailableReason))")
+        lines.append("DPI: \(status(model.telemetry.dpi.unavailableReason))")
+        lines.append("SmartShift: \(status(model.telemetry.smartShift.unavailableReason))")
+        lines.append("Buttons: \(status(model.telemetry.buttons.unavailableReason))")
         return lines.joined(separator: "\n")
     }
 
@@ -39,9 +39,8 @@ enum Diagnostics {
         #endif
     }
 
-    private static func describe<T>(_ value: T) -> String {
-        // Enum case name only (e.g. "ok", "unavailable") — payloads can carry device data.
-        let text = String(describing: value)
-        return String(text.prefix { $0 != "(" })
+    /// "ok", or why the feature isn't available (these are short system messages, not personal data).
+    private static func status(_ unavailableReason: String?) -> String {
+        unavailableReason.map { "unavailable — \($0)" } ?? "ok"
     }
 }

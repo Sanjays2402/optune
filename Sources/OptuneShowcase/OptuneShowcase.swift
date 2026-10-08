@@ -31,7 +31,7 @@ private struct Options {
         case "menu":    return CGSize(width: 560, height: 700)
         case "hero":    return CGSize(width: 1600, height: 700)
         case "buttons": return CGSize(width: 1240, height: 940)
-        case "shapes":  return CGSize(width: 1500, height: 520)
+        case "shapes":  return CGSize(width: 2100, height: 520)
         default:        return CGSize(width: 1240, height: 760)
         }
     }
@@ -682,7 +682,7 @@ private struct ShapesRow: View {
                         shape: item.1,
                         selected: .constant(nil)
                     )
-                    .frame(width: 460, height: 380)
+                    .frame(width: 640, height: 380)
                     Text(item.0).font(OptuneDesign.Typography.header)
                 }
             }

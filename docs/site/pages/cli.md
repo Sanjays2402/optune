@@ -137,3 +137,23 @@ fi
 ```bash
 optune battery --json | curl -X POST -d @- https://your-tsdb/ingest
 ```
+
+## Polling rate
+
+```bash
+optune rate            # read the current and supported rates
+optune rate 1000       # set the polling rate in Hz (the closest supported rate is used)
+optune rate --json
+```
+
+Only devices that expose HID++ Report Rate (`0x8060`) support this; on others the command reports that the feature is missing.
+
+## Shell completions
+
+The CLI is built on swift-argument-parser, which can print a completion script:
+
+```bash
+optune --generate-completion-script zsh  > ~/.zsh/completions/_optune    # zsh
+optune --generate-completion-script bash > ~/.bash_completion.d/optune    # bash
+optune --generate-completion-script fish > ~/.config/fish/completions/optune.fish
+```

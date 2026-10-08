@@ -75,3 +75,8 @@ The CLI uses the same action identifiers the catalog uses — you can find the f
 Open **Buttons** and press any button on your mouse. Its callout on the illustrated mouse lights up green and is selected, so you can change what it does straight away.
 
 To make this work, Optune takes over the mouse's reprogrammable controls while the page is open: your remaps are paused (a press won't trigger its action) and the controls are handed back, with your saved bindings re-applied, as soon as you leave the page. Left and right click aren't reprogrammable, so they can't be detected this way — they work normally.
+
+
+## The drawing matches your model
+
+The illustrated mouse picks a body style from your device's name: an **ergonomic** shape with a thumb rest (MX Master family), a small **compact** shape (MX Anywhere family) or an upright **vertical** shape (MX Vertical). Callouts appear only for controls your device actually reports. It is a generic drawing, not a picture of your exact mouse.
