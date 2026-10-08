@@ -1440,7 +1440,8 @@ private struct ActionPicker: View {
     @ViewBuilder
     var body: some View {
         Menu {
-            Button("Disabled") { onSelect(.none) }
+            Button("Default (original function)") { onSelect(.none) }
+            Button("Do nothing") { onSelect(.ignore) }
             Button { recording = true } label: {
                 Label("Custom shortcut…", systemImage: "keyboard")
             }

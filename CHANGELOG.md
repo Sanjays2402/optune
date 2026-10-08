@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Button actions
+- **Custom shortcut…**: record any key combination for a button or gesture, shown as readable keys (⇧⌘K).
+- **Do nothing**: a button can now be disabled outright (the press is swallowed).
+
+### Fixed
+- The first choice in a button's menu said **Disabled** but actually removed the remap, restoring the button's
+  normal function. It is now called **Default (original function)**.
+
 ### Changed — button map
 - The illustrated mouse **adapts to the model**: ergonomic (MX Master), compact (MX Anywhere) or vertical (MX Vertical),
   with callouts placed to match.
