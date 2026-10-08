@@ -51,7 +51,7 @@ jobs:
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
       - name: Check out homebrew-optune tap
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: Sanjays2402/homebrew-optune
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
