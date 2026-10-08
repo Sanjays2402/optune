@@ -122,9 +122,33 @@ private struct HeaderCard: View {
                     .foregroundStyle(.tertiary)
             }
             Spacer()
+            ActiveProfileChip(manager: model.appProfileManager)
             if model.isPolling {
                 ProgressView().controlSize(.small).tint(.accentColor)
             }
+        }
+    }
+}
+
+/// Shows which per-app profile is currently applied, if any.
+private struct ActiveProfileChip: View {
+    @ObservedObject var manager: AppProfileManager
+
+    var body: some View {
+        if manager.enabled,
+           let id = manager.activeProfileID,
+           let profile = manager.profiles.first(where: { $0.id == id }) {
+            HStack(spacing: 5) {
+                Image(systemName: "app.badge.checkmark").font(.system(size: 10, weight: .semibold))
+                Text(profile.name.isEmpty ? "Profile" : profile.name)
+                    .font(OptuneDesign.Typography.caption)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(Color.orange.opacity(0.14)))
+            .help("Per-app profile in use")
         }
     }
 }

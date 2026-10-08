@@ -34,6 +34,10 @@ A profile is a Swift struct with optional fields. **Only fields you set get appl
 
 Profiles are stored with the rest of Optune's settings in `~/Library/Application Support/Optune/settings.json`. Use the app (or Export/Import in the File menu) to change them — edits made to the file while Optune is running are overwritten.
 
+## Leaving an app restores your settings
+
+When you switch to an app that has no matching profile (and there is no default profile), Optune puts back what you had before the first profile was applied — DPI, SmartShift, pointer speed and wheel settings. The menu bar dropdown shows the active profile's name while one is in use. Turning profiles off also restores your settings.
+
 ## Common patterns
 
 **Final Cut Pro / Logic Pro** — boost DPI and force ratchet for precise scrubbing:

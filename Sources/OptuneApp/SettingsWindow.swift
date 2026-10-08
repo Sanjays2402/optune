@@ -1225,6 +1225,14 @@ private struct AboutPane: View {
                     }
                 }
 
+                Button {
+                    Diagnostics.copy(model: model)
+                } label: {
+                    Label("Copy diagnostics", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.ghost(tint: .secondary))
+                .help("Copies versions, permissions and device model — no serial numbers or settings — for bug reports.")
+
                 HStack(spacing: 8) {
                     ForEach([("Privacy", "privacy"), ("Terms", "terms"), ("Trademarks", "trademarks"), ("Notices", "third-party-notices")], id: \.1) { item in
                         if let url = URL(string: "https://sanjays2402.github.io/optune/docs/\(item.1).html") {

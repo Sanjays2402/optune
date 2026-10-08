@@ -66,6 +66,7 @@ public struct MouseMapView: View {
                          pressed: hotspots.filter { pressed.contains($0.id) })
                     .frame(width: art, height: art)
                     .position(x: w / 2, y: h / 2)
+                    .accessibilityHidden(true)
 
                 // Leader lines — short horizontal run out of the callout, then straight to the dot.
                 ForEach(hotspots) { hs in
@@ -81,6 +82,7 @@ public struct MouseMapView: View {
                     }
                     .stroke(down ? Color.green : (on ? Color.accentColor : Color.primary.opacity(0.28)),
                             style: StrokeStyle(lineWidth: (on || down) ? 1.8 : 1, lineCap: .round, lineJoin: .round))
+                    .accessibilityHidden(true)
                 }
 
                 // Dots
@@ -95,6 +97,7 @@ public struct MouseMapView: View {
                         .shadow(color: tint.opacity(down ? 0.9 : (selected == hs.id ? 0.6 : 0.25)), radius: down ? 9 : 5)
                         .position(p)
                         .onTapGesture { selected = hs.id }
+                        .accessibilityHidden(true)   // the callout below is the accessible control
                 }
 
                 // Callouts
@@ -123,6 +126,10 @@ public struct MouseMapView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(hs.name), \(actions[hs.id] ?? "Default")")
+                    .accessibilityValue(isDown ? "pressed" : "")
+                    .accessibilityHint("Shows the settings for this control")
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
                     .position(x: hs.side == .left ? 12 + chipW / 2 : w - 12 - chipW / 2, y: hs.labelY * h)
                 }
             }
