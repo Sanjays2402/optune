@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-10-07
+
 ### Added — Button actions
 - **Custom shortcut…**: record any key combination for a button or gesture, shown as readable keys (⇧⌘K).
 - **Do nothing**: a button can now be disabled outright (the press is swallowed).
