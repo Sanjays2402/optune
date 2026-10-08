@@ -63,8 +63,8 @@ private struct MenuBarLabel: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: iconName)
-                .symbolRenderingMode(.hierarchical)
+            Image(nsImage: MenuBarIcon.image)
+                .renderingMode(.template)
                 .foregroundStyle(iconTint)
             if let label = trailingLabel {
                 Text(label)
@@ -72,13 +72,6 @@ private struct MenuBarLabel: View {
                     .monospacedDigit()
             }
         }
-    }
-
-    private var iconName: String {
-        if case .ok(_, let charging, _) = model.telemetry.battery, charging {
-            return "computermouse.fill"
-        }
-        return "computermouse.fill"
     }
 
     private var iconTint: Color {

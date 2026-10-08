@@ -12,7 +12,7 @@ The Apache-2.0 text is at <https://www.apache.org/licenses/LICENSE-2.0> and ship
 
 ## Apple platform
 
-Optune is built on macOS system frameworks (SwiftUI, AppKit, IOKit, CoreGraphics, UserNotifications, ServiceManagement). These are part of the operating system and are not redistributed. Symbols in the interface come from Apple's **SF Symbols**, used under the SF Symbols licence for in-app interface glyphs only. Optune's app icon and logo are **original artwork** and do not use SF Symbols.
+Optune is built on macOS system frameworks (SwiftUI, AppKit, IOKit, CoreGraphics, UserNotifications, ServiceManagement). These are part of the operating system and are not redistributed. Symbols in the interface come from Apple's **SF Symbols**, used under the SF Symbols licence for in-app interface glyphs only. Optune's app icon, logo and menu bar icon are **original artwork** and do not use SF Symbols.
 
 ## Protocol knowledge — no code copied
 
