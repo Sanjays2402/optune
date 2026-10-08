@@ -29,6 +29,19 @@ final class AppProfileManager: ObservableObject {
 
     weak var deviceModel: DeviceModel?
     private let store: SettingsStore
+    /// Device settings from before the first profile was applied, so leaving a profiled
+    /// app (to one without a profile) puts things back.
+    private var baseline: Baseline?
+
+    private struct Baseline {
+        var dpi: Int?
+        var smartShiftEnabled: Bool?
+        var smartShiftThreshold: UInt8?
+        var pointerSpeed: Double?
+        var wheelInverted: Bool?
+        var wheelRatchet: Bool?
+        var thumbWheelInverted: Bool?
+    }
     private var observer: NSObjectProtocol?
     private var lastAppliedBundle: String?
 
@@ -66,6 +79,7 @@ final class AppProfileManager: ObservableObject {
         guard bundleID != lastAppliedBundle else { return }
         guard let profile = matchProfile(for: bundleID) else {
             activeProfileID = nil
+            restoreBaselineIfNeeded()
             return
         }
         lastAppliedBundle = bundleID
@@ -81,8 +95,38 @@ final class AppProfileManager: ObservableObject {
         return profiles.first(where: { $0.bundleIDs.isEmpty })
     }
 
+    private func captureBaselineIfNeeded() {
+        guard baseline == nil, let model = deviceModel, let device = model.primaryDevice else { return }
+        let saved = store.settings(for: device)
+        var b = Baseline()
+        if case .ok(let current, _, _, _, _) = model.telemetry.dpi { b.dpi = current }
+        if case .ok(let enabled, let threshold, _) = model.telemetry.smartShift {
+            b.smartShiftEnabled = enabled
+            b.smartShiftThreshold = threshold
+        }
+        b.pointerSpeed = saved.pointerSpeedMultiplier
+        b.wheelInverted = saved.wheelInverted
+        b.wheelRatchet = saved.wheelRatchet
+        b.thumbWheelInverted = saved.thumbWheelInverted
+        baseline = b
+    }
+
+    /// Put back whatever the last profile changed. Only values we actually knew are restored.
+    private func restoreBaselineIfNeeded() {
+        guard let b = baseline, let model = deviceModel else { return }
+        baseline = nil
+        lastAppliedBundle = nil
+        if let dpi = b.dpi { model.applyDPI(dpi) }
+        if let on = b.smartShiftEnabled { model.setSmartShiftEnabled(on, threshold: b.smartShiftThreshold) }
+        if let speed = b.pointerSpeed { model.setPointerSpeed(speed) }
+        if let inverted = b.wheelInverted { model.setWheelInverted(inverted) }
+        if let ratchet = b.wheelRatchet { model.setWheelRatchet(ratchet) }
+        if let thumb = b.thumbWheelInverted { model.setThumbWheelInverted(thumb) }
+    }
+
     private func apply(profile: AppProfile) {
         guard let model = deviceModel else { return }
+        captureBaselineIfNeeded()
         if let dpi = profile.dpi {
             model.applyDPI(dpi)
         }
@@ -122,6 +166,10 @@ final class AppProfileManager: ObservableObject {
     func setEnabled(_ value: Bool) {
         enabled = value
         store.updateApp { $0.appProfilesEnabled = value }
+        if !value {
+            activeProfileID = nil
+            restoreBaselineIfNeeded()
+        }
         if value {
             // Re-fire for current foreground app.
             lastAppliedBundle = nil
