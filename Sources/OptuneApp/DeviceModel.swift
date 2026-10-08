@@ -590,8 +590,10 @@ final class DeviceModel: ObservableObject {
         let gestureBindings = store.settings(for: device).gestureBindings ?? []
         let nonEmpty = bindings.contains { $0.action != .none } || !gestureBindings.isEmpty
 
-        // Tear down if there are no active bindings.
+        // Tear down if there are no active bindings — unless identify mode is using the
+        // transport; stopIdentify() reconciles again once it is done.
         guard nonEmpty else {
+            if identifyToken != nil { return }
             if let engine = remapEngine {
                 if let t = remapTransport,
                    let lookup = try? await RootFeature.getFeature(on: t, featureID: ReprogControlsV4Feature.id),
@@ -600,6 +602,10 @@ final class DeviceModel: ObservableObject {
                 }
                 remapEngine = nil
                 remapTransport?.close()
+                remapTransport = nil
+            } else if let t = remapTransport {
+                // Opened by identify mode with no engine behind it.
+                t.close()
                 remapTransport = nil
             }
             return
@@ -617,7 +623,24 @@ final class DeviceModel: ObservableObject {
         if remapEngine == nil {
             remapEngine = RemapEngine(transport: transport)
         }
+        remapEngine?.paused = identifyToken != nil
         await remapEngine?.apply(bindings: bindings, gestures: gestureBindings, featureIndex: lookup.featureIndex)
+        // apply() un-diverts controls without a binding; identify mode needs them all diverted.
+        if identifyToken != nil {
+            await setAllDiverted(true, on: transport, featureIndex: lookup.featureIndex)
+        }
+    }
+
+    /// Divert (or release) every reprogrammable control on `transport`.
+    private func setAllDiverted(_ diverted: Bool, on transport: HIDPPTransport, featureIndex: UInt8) async {
+        let controls = (try? await ReprogControlsV4Feature.snapshot(on: transport)) ?? []
+        for control in controls where control.isReprogrammable {
+            _ = try? await ReprogControlsV4Feature.setReporting(
+                on: transport,
+                featureIndex: featureIndex,
+                reporting: .init(cid: control.cid, diverted: diverted)
+            )
+        }
     }
 
     // MARK: - Identify mode ("press a button to find it")
@@ -644,14 +667,7 @@ final class DeviceModel: ObservableObject {
                 guard let event = ReprogControlsV4Feature.decodeButtonEvent(response) else { return }
                 Task { @MainActor in self?.pressedCIDs = event.pressedCIDs }
             }
-            let controls = (try? await ReprogControlsV4Feature.snapshot(on: transport)) ?? []
-            for control in controls where control.isReprogrammable {
-                _ = try? await ReprogControlsV4Feature.setReporting(
-                    on: transport,
-                    featureIndex: lookup.featureIndex,
-                    reporting: .init(cid: control.cid, diverted: true)
-                )
-            }
+            await self.setAllDiverted(true, on: transport, featureIndex: lookup.featureIndex)
             // The pane may have closed while we were setting up.
             if !self.identifyWanted { self.stopIdentify() }
         }
@@ -661,18 +677,12 @@ final class DeviceModel: ObservableObject {
     func stopIdentify() {
         identifyWanted = false
         Task { [weak self] in
-            guard let self, let token = self.identifyToken,
-                  let transport = self.remapTransport, let index = self.identifyFeatureIndex else { return }
-            transport.removeEventSubscriber(token)
+            guard let self, let token = self.identifyToken else { return }
             self.identifyToken = nil
             self.pressedCIDs = []
-            let controls = (try? await ReprogControlsV4Feature.snapshot(on: transport)) ?? []
-            for control in controls where control.isReprogrammable {
-                _ = try? await ReprogControlsV4Feature.setReporting(
-                    on: transport,
-                    featureIndex: index,
-                    reporting: .init(cid: control.cid, diverted: false)
-                )
+            if let transport = self.remapTransport, let index = self.identifyFeatureIndex {
+                transport.removeEventSubscriber(token)
+                await self.setAllDiverted(false, on: transport, featureIndex: index)
             }
             self.remapEngine?.paused = false
             if let device = self.primaryDevice { await self.reconcileRemapEngine(for: device) }
