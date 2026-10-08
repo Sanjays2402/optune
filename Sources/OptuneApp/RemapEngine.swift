@@ -272,15 +272,15 @@ final class RemapEngine {
             }
 
         case .systemSwipe(let slot):
-            // macOS exposes Mission Control etc. via stable F-key codes.
-            // F3 = Mission Control, ⌃↓ = Application Windows, F11 = Show Desktop, F4 = Launchpad.
+            // Virtual key codes for the dedicated system keys (kVK_MissionControl 0xA0, kVK_Launchpad 0x83),
+            // ⌃↓ for Application Windows, and F11 for Show Desktop.
             let pair: (Int, UInt64)
             switch slot {
-            case 0:  pair = (160, 0)                                            // F3 (Mission Control)
+            case 0:  pair = (160, 0)                                            // Mission Control key
             case 1:  pair = (125, CGEventFlags.maskControl.rawValue)            // ⌃↓ (App Expose)
             case 2:  pair = (103, 0)                                            // F11 (Show Desktop)
-            case 3:  pair = (131, 0)                                            // F4 (Launchpad)
-            default: pair = (160, 0)
+            case 3:  pair = (131, 0)                                            // Launchpad key
+            default: pair = (160, 0)                                            // Mission Control key
             }
             fire(action: .keystroke(keyCode: pair.0, modifiers: pair.1))
 
@@ -331,8 +331,8 @@ final class RemapEngine {
             let nx: Int32 = {
                 switch key {
                 case 0: return 16   // NX_KEYTYPE_PLAY
-                case 1: return 19   // NX_KEYTYPE_NEXT
-                case 2: return 20   // NX_KEYTYPE_PREVIOUS
+                case 1: return 17   // NX_KEYTYPE_NEXT (19 is FAST, 20 is REWIND)
+                case 2: return 18   // NX_KEYTYPE_PREVIOUS
                 case 3: return 0    // NX_KEYTYPE_SOUND_UP
                 case 4: return 1    // NX_KEYTYPE_SOUND_DOWN
                 case 5: return 7    // NX_KEYTYPE_MUTE
