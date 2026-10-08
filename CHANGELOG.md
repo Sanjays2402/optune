@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — Local diagnostic log
+- Optune keeps a diagnostic log **only on this Mac** (`~/Library/Logs/Optune/`), redacted for serial numbers, nicknames and the home folder path. It is never uploaded.
+- Settings → About shows the recent log in a read-only box with the notice "saved on this Mac only", plus Refresh, Show in Finder and Clear buttons.
+- **Copy diagnostics** now includes the recent log, so bug reports carry the detail.
+
+### Fixed
+- **Next Track and Previous Track** media keys sent Fast-forward and Rewind (wrong IOKit key-type codes).
+
 ### Added — DPI step back
 - **⌃⌥[** steps to the previous saved DPI stage (⌃⌥D still goes to the next one), and `optune://dpi/prev` does the same
   from Shortcuts or scripts. Both are in the DPI hotkey setting under Pointer.

@@ -18,6 +18,8 @@ Optune keeps its settings in a single JSON file at `~/Library/Application Suppor
 
 This file never leaves your Mac unless you export it yourself (File → Export Settings…). You can delete it at any time; Optune will start fresh.
 
+Optune also keeps a **diagnostic log** at `~/Library/Logs/Optune/optune.log` (up to about 1 MB across two files). It records events such as devices connecting, remaps firing (by action type only, never shell commands or key text), and update or backup results. Serial numbers, nicknames and your home folder path are redacted. The log is never uploaded. You can read it, copy it, or clear it in Settings → About. You choose whether to attach it to a bug report.
+
 ## 2. What Optune sends over the network
 
 Optune makes **one** kind of network request: an update check.
