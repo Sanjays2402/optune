@@ -104,7 +104,7 @@ public struct MouseMapView: View {
             let w = geo.size.width
             let art = h
             let ax = (w - art) / 2
-            let chipW = max(120, min(190, ax - 12))
+            let chipW = max(120, min(224, ax - 12))
 
             ZStack(alignment: .topLeading) {
                 MouseArt(shape: shape,

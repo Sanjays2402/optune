@@ -37,7 +37,7 @@ jobs:
           mkdir -p _site/docs _site/img
           cp -R docs/site/dist/. _site/docs/
           cp -R docs/site/landing/. _site/
-          for f in hero-light hero-dark menu-dark pointer-light battery-dark buttons-dark; do
+          for f in hero-light hero-dark menu-dark pointer-light battery-dark buttons-dark shapes-dark; do
             cp "docs/screenshots/$f.png" _site/img/
           done
           touch _site/.nojekyll

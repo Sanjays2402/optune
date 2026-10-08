@@ -80,3 +80,5 @@ To make this work, Optune takes over the mouse's reprogrammable controls while t
 ## The drawing matches your model
 
 The illustrated mouse picks a body style from your device's name: an **ergonomic** shape with a thumb rest (MX Master family), a small **compact** shape (MX Anywhere family) or an upright **vertical** shape (MX Vertical). Callouts appear only for controls your device actually reports. It is a generic drawing, not a picture of your exact mouse.
+
+<img src="../img/shapes-dark.png" alt="The three mouse drawings: ergonomic (MX Master), compact (MX Anywhere) and vertical (MX Vertical), each with labelled callouts" style="max-width:100%;border-radius:12px">
