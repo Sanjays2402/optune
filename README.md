@@ -39,7 +39,7 @@ brew install --cask optune
 | 🔋 **Battery insights** | 14 days of history, drain rate, time-remaining estimate, charge count, and a per-device low-battery alert. |
 | 🎯 **DPI stages** | Save up to six DPI stages, switch from the menu bar in one click, or cycle with <kbd>⌃</kbd><kbd>⌥</kbd><kbd>D</kbd> from anywhere. |
 | 🖐 **Gesture button** | Hold the thumb button and swipe up, down, left or right — each direction runs its own action. |
-| 🧭 **Button remapping** | Click a control on an illustrated mouse — or just press the button on your real mouse to find it — and rebind it to keystrokes, media keys, mouse clicks, Mission Control, apps, or shell commands. |
+| 🧭 **Button remapping** | Click a control on an illustrated mouse — or just press the button on your real mouse to find it — and rebind it to any shortcut you record, media keys, mouse clicks, Mission Control, apps, or shell commands. |
 | 🪟 **Per-app profiles** | DPI, SmartShift and wheel settings follow the app you're using. |
 | 🔀 **Multi-host** | See paired hosts and switch Easy-Switch slots — or press <kbd>⌃</kbd><kbd>⌥</kbd><kbd>1–3</kbd>. |
 | ⚡ **Automation** | Opt-in `optune://` links for Shortcuts and scripts, a polling-rate picker, and automatic settings backup. |

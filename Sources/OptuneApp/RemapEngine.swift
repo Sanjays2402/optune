@@ -6,8 +6,10 @@ import OptuneCore
 
 /// What action to fire when a diverted CID is pressed.
 public enum RemapAction: Codable, Equatable, Sendable, Hashable {
-    /// No-op — explicitly silence the button.
+    /// No remap — the button keeps its normal function (the control is not diverted).
     case none
+    /// Divert the control and swallow the press: the button does nothing at all.
+    case ignore
     /// Synthesize a key-down + key-up event at the global event tap level.
     /// Modifiers is a CGEventFlags raw value (Cmd, Shift, etc.).
     case keystroke(keyCode: Int, modifiers: UInt64)
@@ -36,7 +38,8 @@ public enum RemapAction: Codable, Equatable, Sendable, Hashable {
 
     public var displayName: String {
         switch self {
-        case .none: return "Disabled"
+        case .none: return "Default"
+        case .ignore: return "Do nothing"
         case .keystroke(let kc, let mods):
             // Use the catalog when available — falls back to raw hex for
             // user-defined custom shortcuts.
@@ -254,7 +257,7 @@ final class RemapEngine {
         }
 
         switch action {
-        case .none:
+        case .none, .ignore:
             return
 
         case .keystroke(let keyCode, let modifiers):

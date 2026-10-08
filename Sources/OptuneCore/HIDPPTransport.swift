@@ -364,11 +364,11 @@ public final class HIDPPTransport: @unchecked Sendable {
                 if s == serial { return d }
             }
         }
-        // TODO(multi-device): if two MX-class devices share a featureset and
-        // neither matches by serial, the first IOHIDDevice returned by IOKit
-        // wins non-deterministically. Acceptable today (same featureset =>
-        // same behavior), but should fall back to a deterministic key
-        // (locationID, BSD path) if a real conflict ever shows up.
-        return raw.first
+        // No serial match (or none available): pick deterministically by IOKit location ID so
+        // two identical devices don't swap places between polls. Set iteration order is not stable.
+        func location(_ device: IOHIDDevice) -> Int {
+            (IOHIDDeviceGetProperty(device, kIOHIDLocationIDKey as CFString) as? Int) ?? Int.max
+        }
+        return raw.min { location($0) < location($1) }
     }
 }
