@@ -147,6 +147,7 @@ final class RemapEngine {
     /// Replace the binding map and reconcile firmware divert flags. CIDs that
     /// have any non-`.none` binding get diverted; otherwise they're cleared.
     func apply(bindings: [RemapBinding], gestures gestureBindings: [GestureBinding] = [], featureIndex: UInt8) async {
+        OptuneLog.write(.info, "remap", "applied \(bindings.count) button binding(s), \(gestureBindings.count) gesture binding(s)")
         var map: [UInt16: RemapAction] = [:]
         for b in bindings { map[b.cid] = b.action }
         self.bindings = map
@@ -234,7 +235,25 @@ final class RemapEngine {
         }
     }
 
+    /// Action type only — never the shell command or key text, which can be personal.
+    private static func kind(of action: RemapAction) -> String {
+        switch action {
+        case .none: return "none"
+        case .ignore: return "do-nothing"
+        case .keystroke: return "keystroke"
+        case .systemSwipe: return "system-gesture"
+        case .openApp: return "open-app"
+        case .runShell: return "shell"
+        case .mouseClick: return "mouse-click"
+        case .mediaKey: return "media-key"
+        case .cycleDPI: return "cycle-dpi"
+        case .toggleSmartShift: return "toggle-smartshift"
+        case .toggleScrollMode: return "toggle-scroll-mode"
+        }
+    }
+
     private func fire(action: RemapAction) {
+        OptuneLog.write(.info, "remap", "fired \(Self.kind(of: action))")
         // Gate every CGEvent action on Accessibility trust. Without it the
         // call is a silent no-op and the user is left wondering why nothing
         // happened. We don't block — we still attempt the post and the OS

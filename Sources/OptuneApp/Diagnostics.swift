@@ -23,6 +23,10 @@ enum Diagnostics {
         lines.append("DPI: \(status(model.telemetry.dpi.unavailableReason))")
         lines.append("SmartShift: \(status(model.telemetry.smartShift.unavailableReason))")
         lines.append("Buttons: \(status(model.telemetry.buttons.unavailableReason))")
+        lines.append("")
+        lines.append("--- Recent log (kept on this Mac only; redacted) ---")
+        let log = OptuneLog.tail(lines: 200)
+        lines.append(log.isEmpty ? "(no log entries yet)" : log)
         return lines.joined(separator: "\n")
     }
 

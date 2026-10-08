@@ -311,6 +311,14 @@ final class DeviceModel: ObservableObject {
     func refresh() {
         let next = HIDEnumerator.logitechDevices()
         let appearing = Set(next.map { $0.productID }).subtracting(devices.map { $0.productID })
+        let gone = Set(devices.map { $0.productID }).subtracting(next.map { $0.productID })
+        for device in next where appearing.contains(device.productID) {
+            OptuneLog.protect(device.serialNumber)   // keep serials out of the log
+            OptuneLog.write(.info, "devices", "connected \(String(format: "0x%04X", device.productID)) via \(device.transport ?? "unknown")")
+        }
+        for pid in gone {
+            OptuneLog.write(.info, "devices", "disconnected \(String(format: "0x%04X", pid))")
+        }
         self.devices = next
         self.lastRefresh = Date()
         // For any newly-appearing device, hydrate persisted remap bindings and
@@ -666,6 +674,7 @@ final class DeviceModel: ObservableObject {
     /// `pressedCIDs`. Remap actions are paused until `stopIdentify()`.
     func startIdentify() {
         identifyWanted = true
+        OptuneLog.write(.info, "identify", "started")
         Task { [weak self] in
             guard let self, self.identifyToken == nil, let device = self.primaryDevice else { return }
             if self.remapTransport == nil { self.remapTransport = try? HIDPPTransport(matching: device) }
@@ -687,6 +696,7 @@ final class DeviceModel: ObservableObject {
     /// Hand the controls back: un-divert everything, resume remaps, and re-apply saved bindings.
     func stopIdentify() {
         identifyWanted = false
+        OptuneLog.write(.info, "identify", "stopped")
         Task { [weak self] in
             guard let self, let token = self.identifyToken else { return }
             self.identifyToken = nil

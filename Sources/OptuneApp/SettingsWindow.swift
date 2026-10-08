@@ -1235,7 +1235,9 @@ private struct AboutPane: View {
                     Label("Copy diagnostics", systemImage: "doc.on.clipboard")
                 }
                 .buttonStyle(.ghost(tint: .secondary))
-                .help("Copies versions, permissions and device model — no serial numbers or settings — for bug reports.")
+                .help("Copies versions, permissions, device model and the recent log — no serial numbers or settings — for bug reports.")
+
+                LocalLogCard()
 
                 HStack(spacing: 8) {
                     ForEach([("Privacy", "privacy"), ("Terms", "terms"), ("Trademarks", "trademarks"), ("Notices", "third-party-notices")], id: \.1) { item in
@@ -1487,4 +1489,60 @@ private struct ActionPicker: View {
         .sheet(isPresented: $recording) { ShortcutRecorderSheet(onSave: onSelect) }
     }
 
+}
+
+/// About → diagnostic log. Shows the local log in a read-only box with a clear notice that
+/// nothing leaves this Mac.
+private struct LocalLogCard: View {
+    @State private var text = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OptuneDesign.Spacing.md) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.doc.fill")
+                    .foregroundStyle(.green)
+                Text("Diagnostic log — saved on this Mac only")
+                    .font(OptuneDesign.Typography.header)
+            }
+            Text("Nothing here is uploaded. Optune never sends this log anywhere. It is kept in ~/Library/Logs/Optune, redacted for serial numbers, nicknames and your home folder. If you report a bug, you choose whether to attach it.")
+                .font(OptuneDesign.Typography.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ScrollView {
+                Text(text.isEmpty ? "No log entries yet." : text)
+                    .font(OptuneDesign.Typography.mono)
+                    .foregroundStyle(text.isEmpty ? .secondary : .primary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+            }
+            .frame(height: 170)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
+
+            HStack(spacing: 8) {
+                Button("Refresh") { reload() }
+                Button("Show in Finder") {
+                    try? FileManager.default.createDirectory(at: OptuneLog.directory, withIntermediateDirectories: true)
+                    NSWorkspace.shared.open(OptuneLog.directory)
+                }
+                Button("Clear log", role: .destructive) {
+                    OptuneLog.clear()
+                    OptuneLog.flush()
+                    reload()
+                }
+                Spacer()
+            }
+            .buttonStyle(.ghost(tint: .secondary))
+            .controlSize(.small)
+        }
+        .padding(OptuneDesign.Spacing.xl)
+        .glassSurface(cornerRadius: OptuneDesign.Radius.card)
+        .onAppear { reload() }
+    }
+
+    private func reload() {
+        OptuneLog.flush()
+        text = OptuneLog.tail(lines: 200)
+    }
 }

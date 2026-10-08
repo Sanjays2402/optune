@@ -64,7 +64,15 @@ final class AutomationController: ObservableObject {
     }
 
     func handle(_ url: URL) {
-        guard urlEnabled, let model, let command = URLCommand.parse(url) else { return }
+        guard urlEnabled else {
+            OptuneLog.write(.info, "url", "ignored optune:// link (links are off)")
+            return
+        }
+        guard let model, let command = URLCommand.parse(url) else {
+            OptuneLog.write(.warning, "url", "rejected optune:// link with unknown or out-of-range action")
+            return
+        }
+        OptuneLog.write(.info, "url", "accepted optune:// link")
         switch command {
         case .dpi(let value):
             model.applyDPI(value)

@@ -87,7 +87,9 @@ final class SettingsBackup: ObservableObject {
             lastData = data
             lastBackup = Date()
             lastError = nil
+            OptuneLog.write(.info, "backup", "wrote settings backup")
         } catch {
+            OptuneLog.write(.error, "backup", "failed: \(error.localizedDescription)")
             lastError = error.localizedDescription
         }
     }

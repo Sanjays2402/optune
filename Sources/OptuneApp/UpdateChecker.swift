@@ -53,6 +53,7 @@ final class UpdateChecker: ObservableObject {
             let decoder = JSONDecoder()
             let release = try decoder.decode(Release.self, from: data)
             let latest = release.tag_name.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
+            OptuneLog.write(.info, "update", "checked: latest \(latest), installed \(currentVersion)")
             if isVersion(latest, newerThan: currentVersion) {
                 status = .available(
                     latest: latest,
@@ -63,6 +64,7 @@ final class UpdateChecker: ObservableObject {
                 status = .upToDate(version: currentVersion)
             }
         } catch {
+            OptuneLog.write(.warning, "update", "check failed: \(error.localizedDescription)")
             status = .error("\(error.localizedDescription)")
         }
     }
