@@ -1,0 +1,28 @@
+name: Add or fix a device
+description: Your Logitech device is missing or behaves wrongly
+labels: [device]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Adding a device is usually a one-file change — see [docs/adding-a-device.md](https://github.com/Sanjays2402/optune/blob/main/docs/adding-a-device.md).
+        Only share information from your own device; don't paste proprietary Logitech documents or software.
+  - type: input
+    id: model
+    attributes:
+      label: Device model
+      placeholder: MX Keys, MX Master 3S for Business, …
+    validations:
+      required: true
+  - type: textarea
+    id: devices
+    attributes:
+      label: Output of `optune devices --json --all`
+      description: Run it with the device connected. You may remove the serial number.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: What works and what doesn't?

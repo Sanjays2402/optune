@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Sanjays2402/optune/security/advisories/new
+    about: Please report security problems privately.
+  - name: Documentation
+    url: https://sanjays2402.github.io/optune/docs/
+    about: Guides, CLI reference and troubleshooting.

@@ -8,6 +8,11 @@ Native Swift 6 · SwiftUI · no accounts, no telemetry, no background daemons.
 
 <sub>Independent project — not affiliated with or endorsed by Logitech or Apple.</sub>
 
+[![CI](https://github.com/Sanjays2402/optune/actions/workflows/ci.yml/badge.svg)](https://github.com/Sanjays2402/optune/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/Sanjays2402/optune)](https://github.com/Sanjays2402/optune/releases/latest)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+![macOS 15+](https://img.shields.io/badge/macOS-15%2B-lightgrey)
+
 [**Download for macOS →**](https://github.com/Sanjays2402/optune/releases/latest) · [Install with Homebrew](#install) · [CLI](#cli) · [Changelog](CHANGELOG.md)
 
 <br>

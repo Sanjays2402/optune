@@ -1,0 +1,36 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please don't include serial numbers or other personal data.
+        For security problems, **don't** open an issue — use a [private advisory](https://github.com/Sanjays2402/optune/security/advisories/new).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: In Optune, open Settings → About → **Copy diagnostics** and paste the result here.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Optune?
+      options: [Homebrew, DMG from GitHub Releases, Built from source]
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, steps to reproduce, output of `optune doctor`.
