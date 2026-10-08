@@ -1435,11 +1435,16 @@ struct FlowLayout: Layout {
 private struct ActionPicker: View {
     let current: RemapAction
     let onSelect: (RemapAction) -> Void
+    @State private var recording = false
 
     @ViewBuilder
     var body: some View {
         Menu {
             Button("Disabled") { onSelect(.none) }
+            Button { recording = true } label: {
+                Label("Custom shortcut…", systemImage: "keyboard")
+            }
+            Divider()
             // Catalog-driven sections — replaces the old hardcoded list of
             // 5 keystroke presets / 4 swipes / 3 apps. Each category becomes
             // a labeled `Section`, each entry becomes a `Button`. Mirrors
@@ -1478,6 +1483,7 @@ private struct ActionPicker: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .sheet(isPresented: $recording) { ShortcutRecorderSheet(onSave: onSelect) }
     }
 
 }

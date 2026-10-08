@@ -43,8 +43,7 @@ public enum RemapAction: Codable, Equatable, Sendable, Hashable {
             if let label = ActionCatalog.shared.lookup(keyCode: kc, modifiers: mods)?.label {
                 return label
             }
-            let modName = modifierName(mods)
-            return modName.isEmpty ? "Key 0x\(String(kc, radix: 16))" : "\(modName) + 0x\(String(kc, radix: 16))"
+            return KeyCombo.format(keyCode: kc, modifiers: mods)
         case .systemSwipe(let s):
             switch s {
             case 0: return "Mission Control"
