@@ -31,6 +31,7 @@ private struct Options {
         case "menu":    return CGSize(width: 560, height: 700)
         case "hero":    return CGSize(width: 1600, height: 700)
         case "buttons": return CGSize(width: 1240, height: 940)
+        case "shapes":  return CGSize(width: 1500, height: 520)
         default:        return CGSize(width: 1240, height: 760)
         }
     }
@@ -74,6 +75,7 @@ private struct SceneRoot: View {
             case "menu":    Wallpaper { MenuMock().frame(width: 380) }
             case "pointer": Wallpaper { MockWindow(selected: "Pointer") { PointerPane() } }
             case "battery": Wallpaper { MockWindow(selected: "Devices") { DevicesPane() } }
+            case "shapes":  Wallpaper { ShapesRow() }
             case "buttons": Wallpaper { MockWindow(selected: "Buttons", height: 820) { ButtonsPane() } }
             default:        Hero()
             }
@@ -662,5 +664,29 @@ private struct MockToggle: View {
                 .padding(2)
         }
         .frame(width: 38, height: 22)
+    }
+}
+
+
+// MARK: - Mouse shapes
+
+private struct ShapesRow: View {
+    var body: some View {
+        HStack(spacing: 36) {
+            ForEach([("MX Master 3S", MouseShape.ergonomic), ("MX Anywhere 3S", .compact), ("MX Vertical", .vertical)], id: \.0) { item in
+                VStack(spacing: 8) {
+                    MouseMapView(
+                        hotspots: MouseHotspot.layout(for: item.1),
+                        actions: [0x52: "Mission Control", 0x53: "Back (⌘[)", 0x56: "Forward (⌘])", 0xC3: "Show Desktop",
+                                  0xC4: "SmartShift", 0xDA: "Cycle DPI"],
+                        shape: item.1,
+                        selected: .constant(nil)
+                    )
+                    .frame(width: 460, height: 380)
+                    Text(item.0).font(OptuneDesign.Typography.header)
+                }
+            }
+        }
+        .padding(30)
     }
 }

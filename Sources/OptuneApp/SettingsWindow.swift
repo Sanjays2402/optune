@@ -979,12 +979,16 @@ private struct ButtonMapCard: View {
     @EnvironmentObject private var model: DeviceModel
     @State private var selected: UInt16?
 
+    private var shape: MouseShape {
+        MouseShape.forModel(model.primaryDescriptor?.modelName ?? "")
+    }
+
     /// Standard hotspots for controls this device reports. Some devices expose the
     /// gesture button under a different control ID, so fall back to the alternates.
     private var hotspots: [MouseHotspot] {
         let present = Set(controls.map(\.cid))
         var out: [MouseHotspot] = []
-        for hs in MouseHotspot.standard {
+        for hs in MouseHotspot.layout(for: shape) {
             if present.contains(hs.id) {
                 out.append(hs)
             } else if hs.id == 0xC3, let alt = [UInt16(0xED), 0xD7].first(where: present.contains) {
@@ -1010,7 +1014,7 @@ private struct ButtonMapCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: OptuneDesign.Spacing.lg) {
-            MouseMapView(hotspots: hotspots, actions: actions, pressed: model.pressedCIDs, selected: $selected)
+            MouseMapView(hotspots: hotspots, actions: actions, pressed: model.pressedCIDs, shape: shape, selected: $selected)
                 .frame(height: 340)
 
             Label("Press a button on your mouse to find it here. Remaps are paused while this page is open, and left/right click can’t be detected.",

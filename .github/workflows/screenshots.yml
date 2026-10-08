@@ -32,7 +32,7 @@ jobs:
             ls -la "$OUT" 2>&1 || echo "missing $OUT"; head -5 "shots/$1-$2$4.log"
           }
           for mode in dark light; do
-            for scene in hero menu pointer battery buttons; do shoot $scene $mode "--render" ""; done
+            for scene in hero menu pointer battery buttons shapes; do shoot $scene $mode "--render" ""; done
           done
       - uses: actions/upload-artifact@v4
         if: always()
