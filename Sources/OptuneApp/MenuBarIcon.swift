@@ -2,6 +2,7 @@ import AppKit
 
 /// Optune's menu bar glyph: an outlined mouse with a scroll wheel, drawn as a template
 /// image so macOS tints it for light/dark menu bars. Original artwork (not an SF Symbol).
+@MainActor
 enum MenuBarIcon {
     static let image: NSImage = {
         let size = NSSize(width: 14, height: 18)
