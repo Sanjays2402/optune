@@ -28,6 +28,7 @@ Switch on **Allow optune:// links** (off by default) and Optune accepts these UR
 |---|---|
 | `optune://dpi/1600` | Set DPI (100–32000, clamped to the device) |
 | `optune://dpi/next` | Next saved DPI stage |
+| `optune://dpi/prev` | Previous saved DPI stage |
 | `optune://host/2` | Switch to Easy-Switch host 1–3 |
 | `optune://smartshift/on` | SmartShift on, off or toggle |
 | `optune://scroll/freespin` | Wheel mode: ratchet, freespin or toggle |

@@ -25,4 +25,10 @@ public enum DPIStages {
         let sorted = stages.sorted()
         return sorted.first { $0 > current } ?? sorted.first
     }
+
+    /// The last stage below `current`, wrapping to the highest. Nil when there are no stages.
+    public static func previous(before current: Int, in stages: [Int]) -> Int? {
+        let sorted = stages.sorted()
+        return sorted.last { $0 < current } ?? sorted.last
+    }
 }

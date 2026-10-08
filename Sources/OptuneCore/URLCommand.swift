@@ -2,7 +2,7 @@ import Foundation
 
 /// Commands accepted over the `optune://` URL scheme (Shortcuts "Open URL", scripts, `open`).
 ///
-///     optune://dpi/1600          optune://dpi/next
+///     optune://dpi/1600          optune://dpi/next|prev
 ///     optune://host/2            (1-based Easy-Switch slot)
 ///     optune://smartshift/on|off|toggle
 ///     optune://scroll/ratchet|freespin|toggle
@@ -13,6 +13,7 @@ public enum URLCommand: Equatable, Sendable {
 
     case dpi(Int)
     case dpiNext
+    case dpiPrevious
     case host(Int)
     case smartShift(Switch)
     case scroll(ScrollMode)
@@ -29,6 +30,7 @@ public enum URLCommand: Equatable, Sendable {
         switch action {
         case "dpi":
             if arg == "next" { return .dpiNext }
+            if arg == "prev" { return .dpiPrevious }
             if let n = Int(arg), (100...32_000).contains(n) { return .dpi(n) }
         case "host":
             if let n = Int(arg), (1...3).contains(n) { return .host(n) }

@@ -70,6 +70,8 @@ final class AutomationController: ObservableObject {
             model.applyDPI(value)
         case .dpiNext:
             model.cycleDPIPreset()
+        case .dpiPrevious:
+            model.cycleDPIPreviousPreset()
         case .host(let slot):
             model.switchHost(to: UInt8(slot - 1))
         case .smartShift(let mode):

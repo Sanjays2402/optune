@@ -264,11 +264,15 @@ final class DeviceModel: ObservableObject {
 
     private func syncDPIHotkey() {
         if dpiHotkeyEnabled {
-            GlobalHotkey.shared.register(id: 1, keyCode: 2) { [weak self] in   // kVK_ANSI_D
+            GlobalHotkey.shared.register(id: 1, keyCode: 2) { [weak self] in   // kVK_ANSI_D: next stage
                 Task { @MainActor in self?.cycleDPIPreset() }
+            }
+            GlobalHotkey.shared.register(id: 2, keyCode: 33) { [weak self] in  // kVK_ANSI_LeftBracket: previous stage
+                Task { @MainActor in self?.cycleDPIPreviousPreset() }
             }
         } else {
             GlobalHotkey.shared.unregister(id: 1)
+            GlobalHotkey.shared.unregister(id: 2)
         }
     }
 
@@ -278,6 +282,13 @@ final class DeviceModel: ObservableObject {
         guard case let .ok(current, _, _, _, _) = telemetry.dpi,
               let next = DPIStages.next(after: current, in: dpiStages) else { return }
         applyDPI(next)
+    }
+
+    /// Jump to the previous DPI stage (wraps). Bound to ⌃⌥[ and `optune://dpi/prev`.
+    func cycleDPIPreviousPreset() {
+        guard case let .ok(current, _, _, _, _) = telemetry.dpi,
+              let previous = DPIStages.previous(before: current, in: dpiStages) else { return }
+        applyDPI(previous)
     }
 
     /// Flip SmartShift on/off — keeps current threshold.

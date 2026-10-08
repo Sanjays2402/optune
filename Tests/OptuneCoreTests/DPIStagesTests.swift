@@ -23,3 +23,20 @@ final class DPIStagesTests: XCTestCase {
         XCTAssertNil(DPIStages.next(after: 1000, in: []))
     }
 }
+
+final class DPIStagesPreviousTests: XCTestCase {
+    func test_previous_wraps() {
+        XCTAssertEqual(DPIStages.previous(before: 1600, in: [800, 1600, 3200]), 800)
+        XCTAssertEqual(DPIStages.previous(before: 800, in: [800, 1600, 3200]), 3200)
+        XCTAssertEqual(DPIStages.previous(before: 1000, in: [3200, 800]), 800)
+        XCTAssertNil(DPIStages.previous(before: 1000, in: []))
+    }
+
+    func test_nextAndPreviousAreInverse() {
+        let stages = [800, 1600, 3200, 4000]
+        for s in stages {
+            let n = DPIStages.next(after: s, in: stages)!
+            XCTAssertEqual(DPIStages.previous(before: n, in: stages), s)
+        }
+    }
+}

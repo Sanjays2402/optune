@@ -7,6 +7,7 @@ final class URLCommandTests: XCTestCase {
     func test_valid() {
         XCTAssertEqual(parse("optune://dpi/1600"), .dpi(1600))
         XCTAssertEqual(parse("optune://dpi/next"), .dpiNext)
+        XCTAssertEqual(parse("optune://dpi/prev"), .dpiPrevious)
         XCTAssertEqual(parse("optune://host/2"), .host(2))
         XCTAssertEqual(parse("optune://smartshift/toggle"), .smartShift(.toggle))
         XCTAssertEqual(parse("optune://scroll/freespin"), .scroll(.freespin))

@@ -687,7 +687,7 @@ private struct DPIStagesEditor: View {
                 get: { model.dpiHotkeyEnabled },
                 set: { model.setDPIHotkeyEnabled($0) }
             )) {
-                Text("Cycle stages with ⌃⌥D from anywhere")
+                Text("Step through stages with ⌃⌥D (next) and ⌃⌥[ (previous) from anywhere")
                     .font(OptuneDesign.Typography.body)
             }
             .toggleStyle(.switch)

@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+### Added — DPI step back
+- **⌃⌥[** steps to the previous saved DPI stage (⌃⌥D still goes to the next one), and `optune://dpi/prev` does the same
+  from Shortcuts or scripts. Both are in the DPI hotkey setting under Pointer.
+
 ## [0.9.0] — 2026-10-07
 
 ### Added — Button actions
